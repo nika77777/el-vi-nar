@@ -83,7 +83,7 @@
 
       <div class="divider"></div>
 
-      <p class="small">В ближайшие дни я обращаю внимание на:</p>
+      <p class="small">Мой личный фокус на следующие дни:</p>
       <textarea id="next" placeholder="Запишите, на что вы будете обращать внимание в следующие дни..."></textarea>
     </div>
 
@@ -114,7 +114,7 @@
 <script>
   /*
     Part I items are shuffled on each load.
-    We do NOT show any original numbering in the UI.
+    No visible numbering.
     Each item has a hidden group for correct scoring.
   */
 
@@ -193,6 +193,10 @@
     return [...document.querySelectorAll(`input[data-group="${groupId}"]`)].filter(x => x.checked).length;
   }
 
+  /*
+    IMPORTANT: Do not change these band* functions per spec.
+    They are used for UI only ("Интерпретация шкал").
+  */
   function bandStable(c) {
     if (c >= 6) return "выражено ясно";
     if (c >= 3) return "присутствует частично";
@@ -217,6 +221,124 @@
     return "удержание слабое";
   }
 
+  /*
+    Spec: frozen mapping functions (mapZ/mapS/mapF/mapU).
+  */
+  function mapZ(Z) {
+    if (Z >= 6) return "Z_clear";
+    if (Z >= 3) return "Z_partial";
+    return "Z_low";
+  }
+
+  function mapS(S) {
+    if (S >= 4) return "S_strong";
+    if (S >= 2) return "S_point";
+    return "S_none";
+  }
+
+  function mapF(F) {
+    if (F >= 3) return "F_high";
+    if (F >= 1) return "F_situ";
+    return "F_none";
+  }
+
+  function mapU(U) {
+    if (U >= 4) return "U_bg";
+    if (U >= 2) return "U_act";
+    return "U_weak";
+  }
+
+  /*
+    Spec: constants (texts) embedded as constants.
+  */
+  const BASE_TEXT = {
+    Z_clear: {
+      S_none: "Элементы устойчивого заземления выражены ясно, а теневая реализация почти не проявляется. Это похоже на состояние, где присутствие естественно переходит в действия и решения, а опора ощущается без необходимости постоянно себя возвращать. Внешняя реальность в целом считывается как выдерживаемая и понятная для взаимодействия.",
+      S_point: "Устойчивое заземление выражено ясно, при этом теневая реализация проявляется точечно. В целом опора уже собрана, но есть отдельные ситуации, где включается настороженность, контроль или внутреннее напряжение. Обычно это выглядит как локальные «провалы в простоту», а не как общий фон.",
+      S_strong: "Элементы устойчивого заземления выражены ясно, но теневая реализация выражена сильно. Это сочетание часто указывает на то, что опора в целом есть, однако она может удерживаться через напряжение, контроль или постоянную настороженность. Снаружи может казаться, что всё «держится», а внутри остаётся фоновая нагрузка, из-за которой состояние не ощущается лёгким."
+    },
+    Z_partial: {
+      S_none: "Элементы устойчивого заземления присутствуют частично, а теневая реализация почти не проявляется. Это похоже на процесс сборки опоры: в одних ситуациях присутствие есть и считывается ясно, в других пока требуется «возвращать себя» и уточнять следующий практический шаг. Важно, что теневая динамика не перехватывает управление, поэтому формирование опоры идёт относительно чисто.",
+      S_point: "Устойчивое заземление присутствует частично, и при этом теневая реализация проявляется точечно. Это типичная картина формирования опоры: она уже появляется, но ещё не удерживается одинаково во всех ситуациях. Чаще всего это проявляется как чередование простоты и «сборки через усилие» в отдельных контекстах.",
+      S_strong: "Элементы устойчивого заземления присутствуют частично, но теневая реализация выражена сильно. Это обычно означает, что опора уже формируется, однако фон тревожного сканирования, контроль или настороженность часто перехватывают управление. Снаружи может быть много действий и решений, но внутреннее ощущение присутствия держится неравномерно."
+    },
+    Z_low: {
+      S_none: "Элементы устойчивого заземления выражены слабо, а теневая реализация почти не проявляется. Это может означать, что сейчас присутствие и опора просто не являются устойчивым фоном: внимание легко уходит в прошлое или будущее, а связь между ощущением и поступком возникает эпизодически. При этом теневая динамика не выглядит доминирующей, скорее речь о недостатке стабильной сборки состояния.",
+      S_point: "Устойчивое заземление выражено слабо, а теневая реализация проявляется точечно. Это часто выглядит как общая неустойчивость присутствия, к которой добавляются отдельные ситуации с настороженностью, напряжением или ощущением небезопасности. В результате состояние может собираться лишь временами и быстро теряться при смене контекста.",
+      S_strong: "Устойчивое заземление выражено слабо, при этом теневая реализация выражена сильно. В такой конфигурации теневая динамика обычно становится ведущей: внимание легко уходит в тревожное будущее или прошлое, включается сканирование угроз, а опора ощущается через напряжение и контроль. Состояние может выглядеть деятельным, но внутреннее присутствие при этом не удерживается."
+    }
+  };
+
+  const FALSE_TEXT = {
+    F_situ: "Есть признаки ложной активации, но они проявляются ситуативно. Это указывает на отдельные места, где состояние похоже на заземление, однако быстро рассеивается и не удерживается как фон.",
+    F_high: "Признаки ложной активации выражены сильно. Это означает, что может возникать ощущение опоры, которое внешне похоже на заземление, но на практике не удерживается и быстро распадается, особенно при смене задачи, общения или усталости."
+  };
+
+  const HOLD_TEXT = {
+    U_bg: "По удержанию во времени видно, что состояние присутствия способно сохраняться не только в спокойных условиях, но и в обычной повседневной нагрузке. Это делает текущую картину более устойчивой: даже если есть точечные сложности, базовая опора остаётся доступной.",
+    U_act: "По удержанию во времени видно, что состояние чаще включается осознанно, чем держится фоном. То есть опора доступна, но требует намеренного возвращения в присутствие, особенно в нагрузке, общении и ответственности.",
+    U_weak: "По удержанию во времени видно, что состояние удерживается слабо. Это означает, что даже если элементы заземления появляются, они быстро рассеиваются под нагрузкой и требуют повторной сборки."
+  };
+
+  const FOCUS_TEXT = {
+    FOCUS_GROUNDING_NOT_CLEAR: "В ближайшие 3–7 дней фиксируйте конкретные ситуации, где присутствие держится, и где оно теряется: что было в контексте, какая нагрузка, какая задача, какое общение. Это поможет увидеть, за счёт чего состояние собирается и что именно его расшатывает.",
+    FOCUS_SHADOW_STRONG: "В ближайшие 3–7 дней отмечайте, в каких ситуациях включается настороженность, контроль или фоновое ожидание проблем, и как это влияет на ощущение опоры и последовательность действий. Важно фиксировать именно факты и условия, а не оценку себя.",
+    FOCUS_FALSE: "В ближайшие 3–7 дней отмечайте эпизоды, где состояние похоже на заземление, но быстро рассеивается: что именно создаёт это ощущение и что происходит перед его распадом. Это даст материал для уточнения «ложных точек опоры» в следующем заполнении.",
+    FOCUS_HOLD_WEAK: "В ближайшие 3–7 дней фиксируйте, что именно выбивает состояние присутствия в повседневной нагрузке и сколько времени требуется, чтобы оно вернулось. Здесь важна повторяемость: одинаковые триггеры и одинаковые сценарии потери удержания.",
+    FOCUS_STABLE: "В ближайшие 3–7 дней отмечайте, какие условия поддерживают состояние присутствия как фон, и в каких редких случаях оно всё же становится менее доступным. Это поможет точнее понять границы устойчивости и типовые исключения из стабильной картины."
+  };
+
+  /*
+    Spec: chooseFocus with strict priority.
+  */
+  function chooseFocus(F_level, U_level, S_level, Z_level) {
+    if (F_level !== "F_none") return "FOCUS_FALSE";
+    if (U_level === "U_weak") return "FOCUS_HOLD_WEAK";
+    if (S_level === "S_strong") return "FOCUS_SHADOW_STRONG";
+    if (Z_level !== "Z_clear") return "FOCUS_GROUNDING_NOT_CLEAR";
+    return "FOCUS_STABLE";
+  }
+
+  function joinPartsInOrder(parts) {
+    return parts.filter(Boolean).join("\n\n");
+  }
+
+  /*
+    Spec: replace getCommentary() with:
+      (1) buildPersonalSummary(stableC, shadowC, falseC, holdC)
+      (2) getMethodNote(stableC, shadowC, falseC) -> string|null
+  */
+  function buildPersonalSummary(stableC, shadowC, falseC, holdC) {
+    const Z_level = mapZ(stableC);
+    const S_level = mapS(shadowC);
+    const F_level = mapF(falseC);
+    const U_level = mapU(holdC);
+
+    const baseText = BASE_TEXT[Z_level][S_level];
+
+    let falseText = "";
+    if (F_level === "F_situ") falseText = FALSE_TEXT.F_situ;
+    if (F_level === "F_high") falseText = FALSE_TEXT.F_high;
+
+    const holdText = HOLD_TEXT[U_level];
+
+    const focusKey = chooseFocus(F_level, U_level, S_level, Z_level);
+    const focusText = FOCUS_TEXT[focusKey];
+
+    return joinPartsInOrder([baseText, falseText, holdText, focusText]);
+  }
+
+  function getMethodNote(stableC, shadowC, falseC) {
+    const has_grounding = (stableC >= 3);
+    const has_shadow = (shadowC >= 2);
+    const has_false = (falseC >= 1);
+
+    if (has_grounding && has_shadow) {
+      return "Если одновременно присутствуют элементы устойчивого заземления и тени — это самый частый и самый здоровый вариант. Он означает, что опора уже формируется, но ещё не удерживается одинаково во всех ситуациях. Если присутствуют элементы ложной активации — это указывает на места, где состояние похоже на заземление, но пока не удерживается.";
+    }
+    return null;
+  }
+
   function buildTags(stableC, shadowC, falseC, holdC) {
     const tags = [];
     if (stableC >= 6) tags.push("Устойчивое заземление — выражено");
@@ -238,12 +360,34 @@
     return tags;
   }
 
+  function renderParagraphsFromText(text) {
+    const safe = (text || "").trim();
+    if (!safe) return "<p class=\"muted\" style=\"margin:0;\">—</p>";
+    const parts = safe.split("\n\n").map(s => s.trim()).filter(Boolean);
+    return parts.map(p => `<p style="margin:0 0 8px;">${escapeHtml(p)}</p>`).join("") + "";
+  }
+
+  function escapeHtml(s) {
+    return s.replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll("\"", "&quot;")
+            .replaceAll("'", "&#039;");
+  }
+
+  /*
+    Spec: setResultsUI(payload) must render:
+      (1) Сводка
+      (2) Интерпретация шкал
+      (3) Персональный вывод (dynamic)
+      (4) Методическая справка (conditional)
+      (5) Личные заметки
+  */
   function setResultsUI(payload) {
     const root = document.getElementById("resultsUI");
     root.innerHTML = "";
 
-    const { stableC, shadowC, falseC, holdC, examples, next, commentary } = payload;
-
+    const { stableC, shadowC, falseC, holdC, examples, next, personalSummary, methodNote } = payload;
     const tags = buildTags(stableC, shadowC, falseC, holdC);
 
     const kpiBox = document.createElement("div");
@@ -256,7 +400,7 @@
         <div class="kpi-row"><span>Ложная активация</span><strong>${falseC} / 4</strong></div>
         <div class="kpi-row"><span>Удержание во времени</span><strong>${holdC} / 5</strong></div>
       </div>
-      <div class="tags">${tags.map(t => `<span class="tag">${t}</span>`).join("")}</div>
+      <div class="tags">${tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join("")}</div>
     `;
     root.appendChild(kpiBox);
 
@@ -275,29 +419,46 @@
       </ul>
     `;
 
-    const note = document.createElement("div");
-    note.className = "box";
-    note.innerHTML = `
-      <h3>Комментарий из методики</h3>
-      <p style="margin:0;">${commentary}</p>
+    const personal = document.createElement("div");
+    personal.className = "box";
+    personal.innerHTML = `
+      <h3>Персональный вывод</h3>
+      ${renderParagraphsFromText(personalSummary)}
     `;
 
     two.appendChild(interpret);
-    two.appendChild(note);
+    two.appendChild(personal);
     root.appendChild(two);
 
-    const textBox = document.createElement("div");
-    textBox.className = "box";
-    textBox.innerHTML = `
+    if (methodNote !== null) {
+      const methodBox = document.createElement("div");
+      methodBox.className = "box";
+      methodBox.innerHTML = `
+        <h3>Методическая справка</h3>
+        ${renderParagraphsFromText(methodNote)}
+      `;
+      root.appendChild(methodBox);
+    }
+
+    const notesBox = document.createElement("div");
+    notesBox.className = "box";
+    notesBox.innerHTML = `
       <h3>Личные заметки</h3>
-      <p class="muted" style="margin:0 0 8px;"><strong>Примеры из жизни:</strong><br>${examples || "—"}</p>
-      <p class="muted" style="margin:0;"><strong>В ближайшие дни я обращаю внимание на:</strong><br>${next || "—"}</p>
+      <p class="muted" style="margin:0 0 8px;"><strong>Примеры из жизни:</strong><br>${escapeHtml(examples || "—")}</p>
+      <p class="muted" style="margin:0;"><strong>Мой личный фокус на следующие дни:</strong><br>${escapeHtml(next || "—")}</p>
     `;
-    root.appendChild(textBox);
+    root.appendChild(notesBox);
   }
 
+  /*
+    Spec: setPlainText(payload) format fixed and includes:
+      - personal summary
+      - method note (text or — if hidden)
+  */
   function setPlainText(payload) {
-    const { stableC, shadowC, falseC, holdC, examples, next, commentary } = payload;
+    const { stableC, shadowC, falseC, holdC, examples, next, personalSummary, methodNote } = payload;
+    const methodLine = (methodNote === null) ? "—" : methodNote;
+
     const text =
 `СВОДКА
 Устойчивое заземление: ${stableC} из 8
@@ -311,8 +472,11 @@
 Ложная активация: ${bandFalse(falseC)}
 Удержание: ${bandHold(holdC)}
 
-КОММЕНТАРИЙ
-${commentary}
+ПЕРСОНАЛЬНЫЙ ВЫВОД
+${personalSummary}
+
+МЕТОДИЧЕСКАЯ СПРАВКА
+${methodLine}
 
 ПРИМЕРЫ ИЗ ЖИЗНИ
 ${examples || "—"}
@@ -321,10 +485,6 @@ ${examples || "—"}
 ${next || "—"}
 `;
     document.getElementById("plainOut").textContent = text;
-  }
-
-  function getCommentary() {
-    return "Если одновременно присутствуют элементы устойчивого заземления и тени — это самый частый и самый здоровый вариант. Он означает, что опора уже формируется, но ещё не удерживается одинаково во всех ситуациях. Если присутствуют элементы ложной активации — это указывает на места, где состояние похоже на заземление, но пока не удерживается.";
   }
 
   document.getElementById("calc").addEventListener("click", () => {
@@ -337,9 +497,14 @@ ${next || "—"}
     const next = document.getElementById("next").value.trim();
 
     const payload = {
-      stableC, shadowC, falseC, holdC,
-      examples, next,
-      commentary: getCommentary()
+      stableC,
+      shadowC,
+      falseC,
+      holdC,
+      examples,
+      next,
+      personalSummary: buildPersonalSummary(stableC, shadowC, falseC, holdC),
+      methodNote: getMethodNote(stableC, shadowC, falseC)
     };
 
     setResultsUI(payload);
@@ -360,7 +525,7 @@ ${next || "—"}
     `;
     document.getElementById("plainOut").textContent = "";
 
-    renderPart1Mixed(); // перемешать заново
+    renderPart1Mixed();
   });
 
   document.getElementById("copy").addEventListener("click", async () => {
