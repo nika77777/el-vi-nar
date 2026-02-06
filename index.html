@@ -32,8 +32,6 @@
     .kpi { display: grid; gap: 6px; font-size: 13px; }
     .kpi-row { display: flex; justify-content: space-between; gap: 12px; }
     .kpi-row strong { font-weight: 600; }
-    .tag { display: inline-block; font-size: 12px; padding: 3px 8px; border-radius: 999px; border: 1px solid rgba(0,0,0,0.12); background: #fff; }
-    .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
     ul { margin: 8px 0 0 18px; padding: 0; }
     li { margin: 6px 0; }
     .two-col { display: grid; gap: 10px; }
@@ -194,7 +192,7 @@
   }
 
   /*
-    IMPORTANT: Do not change these band* functions per spec.
+    IMPORTANT: Do not change these band* functions.
     They are used for UI only ("Интерпретация шкал").
   */
   function bandStable(c) {
@@ -222,7 +220,7 @@
   }
 
   /*
-    Spec: frozen mapping functions (mapZ/mapS/mapF/mapU).
+    Frozen mapping functions (mapZ/mapS/mapF/mapU).
   */
   function mapZ(Z) {
     if (Z >= 6) return "Z_clear";
@@ -248,9 +246,6 @@
     return "U_weak";
   }
 
-  /*
-    Spec: constants (texts) embedded as constants.
-  */
   const BASE_TEXT = {
     Z_clear: {
       S_none: "Элементы устойчивого заземления выражены ясно, а теневая реализация почти не проявляется. Это похоже на состояние, где присутствие естественно переходит в действия и решения, а опора ощущается без необходимости постоянно себя возвращать. Внешняя реальность в целом считывается как выдерживаемая и понятная для взаимодействия.",
@@ -288,9 +283,6 @@
     FOCUS_STABLE: "В ближайшие 3–7 дней отмечайте, какие условия поддерживают состояние присутствия как фон, и в каких редких случаях оно всё же становится менее доступным. Это поможет точнее понять границы устойчивости и типовые исключения из стабильной картины."
   };
 
-  /*
-    Spec: chooseFocus with strict priority.
-  */
   function chooseFocus(F_level, U_level, S_level, Z_level) {
     if (F_level !== "F_none") return "FOCUS_FALSE";
     if (U_level === "U_weak") return "FOCUS_HOLD_WEAK";
@@ -303,11 +295,6 @@
     return parts.filter(Boolean).join("\n\n");
   }
 
-  /*
-    Spec: replace getCommentary() with:
-      (1) buildPersonalSummary(stableC, shadowC, falseC, holdC)
-      (2) getMethodNote(stableC, shadowC, falseC) -> string|null
-  */
   function buildPersonalSummary(stableC, shadowC, falseC, holdC) {
     const Z_level = mapZ(stableC);
     const S_level = mapS(shadowC);
@@ -331,7 +318,6 @@
   function getMethodNote(stableC, shadowC, falseC) {
     const has_grounding = (stableC >= 3);
     const has_shadow = (shadowC >= 2);
-    const has_false = (falseC >= 1);
 
     if (has_grounding && has_shadow) {
       return "Если одновременно присутствуют элементы устойчивого заземления и тени — это самый частый и самый здоровый вариант. Он означает, что опора уже формируется, но ещё не удерживается одинаково во всех ситуациях. Если присутствуют элементы ложной активации — это указывает на места, где состояние похоже на заземление, но пока не удерживается.";
@@ -339,32 +325,11 @@
     return null;
   }
 
-  function buildTags(stableC, shadowC, falseC, holdC) {
-    const tags = [];
-    if (stableC >= 6) tags.push("Устойчивое заземление — выражено");
-    else if (stableC >= 3) tags.push("Устойчивое заземление — частично");
-    else tags.push("Устойчивое заземление — слабее");
-
-    if (shadowC >= 4) tags.push("Теневая динамика — сильнее");
-    else if (shadowC >= 2) tags.push("Теневая динамика — точечно");
-    else tags.push("Теневая динамика — минимально");
-
-    if (falseC >= 3) tags.push("Ложная активация — вероятна");
-    else if (falseC >= 1) tags.push("Ложная активация — ситуативно");
-    else tags.push("Ложная активация — минимально");
-
-    if (holdC >= 4) tags.push("Удержание — фоново");
-    else if (holdC >= 2) tags.push("Удержание — активируемо");
-    else tags.push("Удержание — слабее");
-
-    return tags;
-  }
-
   function renderParagraphsFromText(text) {
     const safe = (text || "").trim();
     if (!safe) return "<p class=\"muted\" style=\"margin:0;\">—</p>";
     const parts = safe.split("\n\n").map(s => s.trim()).filter(Boolean);
-    return parts.map(p => `<p style="margin:0 0 8px;">${escapeHtml(p)}</p>`).join("") + "";
+    return parts.map(p => `<p style="margin:0 0 8px;">${escapeHtml(p)}</p>`).join("");
   }
 
   function escapeHtml(s) {
@@ -375,32 +340,22 @@
             .replaceAll("'", "&#039;");
   }
 
-  /*
-    Spec: setResultsUI(payload) must render:
-      (1) Сводка
-      (2) Интерпретация шкал
-      (3) Персональный вывод (dynamic)
-      (4) Методическая справка (conditional)
-      (5) Личные заметки
-  */
   function setResultsUI(payload) {
     const root = document.getElementById("resultsUI");
     root.innerHTML = "";
 
     const { stableC, shadowC, falseC, holdC, examples, next, personalSummary, methodNote } = payload;
-    const tags = buildTags(stableC, shadowC, falseC, holdC);
 
     const kpiBox = document.createElement("div");
     kpiBox.className = "box";
     kpiBox.innerHTML = `
-      <h3>Сводка</h3>
+      <h3>Карта состояния</h3>
       <div class="kpi">
         <div class="kpi-row"><span>Устойчивое заземление</span><strong>${stableC} / 8</strong></div>
         <div class="kpi-row"><span>Теневая реализация</span><strong>${shadowC} / 7</strong></div>
         <div class="kpi-row"><span>Ложная активация</span><strong>${falseC} / 4</strong></div>
         <div class="kpi-row"><span>Удержание во времени</span><strong>${holdC} / 5</strong></div>
       </div>
-      <div class="tags">${tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join("")}</div>
     `;
     root.appendChild(kpiBox);
 
@@ -450,11 +405,6 @@
     root.appendChild(notesBox);
   }
 
-  /*
-    Spec: setPlainText(payload) format fixed and includes:
-      - personal summary
-      - method note (text or — if hidden)
-  */
   function setPlainText(payload) {
     const { stableC, shadowC, falseC, holdC, examples, next, personalSummary, methodNote } = payload;
     const methodLine = (methodNote === null) ? "—" : methodNote;
