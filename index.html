@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Эль Ви-Нар — Diagnostic Calculator</title>
+  <style>
+    :root { color-scheme: light; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; line-height: 1.35; }
+    .wrap { max-width: 760px; margin: 0 auto; padding: 16px; }
+    h1 { font-size: 20px; margin: 0 0 8px; }
+    h2 { font-size: 16px; margin: 18px 0 8px; }
+    p { margin: 8px 0; }
+    .note { font-size: 13px; opacity: 0.85; }
+    .card { border: 1px solid rgba(0,0,0,0.12); border-radius: 12px; padding: 12px; margin: 10px 0; }
+    .checklist { display: grid; gap: 10px; }
+    label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+    input[type="checkbox"] { width: 18px; height: 18px; margin-top: 2px; flex: 0 0 auto; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    button { border: 1px solid rgba(0,0,0,0.15); background: #fff; border-radius: 10px; padding: 10px 12px; cursor: pointer; }
+    button:hover { background: rgba(0,0,0,0.03); }
+    .result { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size: 13px; }
+    .small { font-size: 13px; }
+    textarea { width: 100%; min-height: 90px; resize: vertical; padding: 10px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.15); }
+    .divider { height: 1px; background: rgba(0,0,0,0.08); margin: 14px 0; }
+    .pill { display: inline-block; padding: 3px 8px; border: 1px solid rgba(0,0,0,0.12); border-radius: 999px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Диагностика тэттраглифа Эль Ви-Нар — «Заземление»</h1>
+    <p class="note">Работайте с наблюдениями за последние 3–7 дней. Отмечайте только то, что вы действительно замечали.</p>
+
+    <div class="card">
+      <h2>Часть I. Наблюдения</h2>
+
+      <p class="pill">Устойчивое заземление (1–8)</p>
+      <div class="checklist" id="stable"></div>
+
+      <div class="divider"></div>
+
+      <p class="pill">Теневая реализация (9–15)</p>
+      <div class="checklist" id="shadow"></div>
+
+      <div class="divider"></div>
+
+      <p class="pill">Ложная активация (16–19)</p>
+      <div class="checklist" id="falseact"></div>
+    </div>
+
+    <div class="card">
+      <h2>Часть V. Удержание состояния во времени</h2>
+      <p class="note">Под «нагрузкой» понимаются обычные жизненные ситуации: работа, общение, ответственность, усталость, необходимость принимать решения.</p>
+      <div class="checklist" id="hold"></div>
+    </div>
+
+    <div class="card">
+      <h2>Часть VI. Итоговая фиксация</h2>
+      <p class="small">Примеры из жизни:</p>
+      <textarea id="examples" placeholder="Запишите 2–5 коротких примеров из наблюдений..."></textarea>
+
+      <div class="divider"></div>
+
+      <p class="small">В ближайшие дни я обращаю внимание на:</p>
+      <textarea id="next" placeholder="Запишите, на что вы будете обращать внимание в следующие дни..."></textarea>
+    </div>
+
+    <div class="row">
+      <button id="calc">Calculate</button>
+      <button id="reset">Reset</button>
+      <button id="copy">Copy results</button>
+    </div>
+
+    <div class="card">
+      <h2>Результаты</h2>
+      <div class="result" id="out">No results yet. Mark checkboxes, then press Calculate.</div>
+    </div>
+
+    <p class="note">Privacy: this page does not send your answers anywhere. Everything is calculated in your browser.</p>
+  </div>
+
+<script>
+  const stableItems = [
+    "Внимание удерживается в текущем действии, без необходимости специально себя возвращать.",
+    "В теле большую часть времени ощущается опора без зажима и усилия.",
+    "Я ясно ощущаю факт своего присутствия, без необходимости его подтверждать.",
+    "Я понимаю, что делаю и зачем, без внутреннего шума и противоречивых импульсов.",
+    "Я чувствую своё внутреннее состояние и не теряю с ним контакт, даже когда занят(а) делами.",
+    "Я вижу, что происходит сейчас, и понимаю следующий практический шаг.",
+    "Повседневные ситуации в целом переживаются как выдерживаемые и понятные.",
+    "Присутствие естественно переходит в действия и решения, без разрыва между ощущением и поступком."
+  ];
+
+  const shadowItems = [
+    "Внимание часто уходит в прошлое или тревожное будущее.",
+    "Я замечаю фоновое сканирование угроз или ожидание проблем.",
+    "Даже в спокойных ситуациях внутри остаётся настороженность.",
+    "Опора ощущается через напряжение, собранность или контроль.",
+    "Реальность часто переживается как хаотичная, давящая или небезопасная.",
+    "Решения принимаются, чтобы быстрее снизить внутреннее напряжение.",
+    "Я избегаю некоторых шагов, потому что они вызывают внутренний дискомфорт."
+  ];
+
+  const falseActItems = [
+    "Иногда кажется, что я в опоре, но это состояние быстро рассеивается.",
+    "Чтобы быть устойчивым(ой), мне нужно каждый раз «собираться».",
+    "Я могу много делать, но при этом не чувствовать присутствия в этих действиях.",
+    "После ощущения устойчивости напряжение или тревога возвращаются."
+  ];
+
+  const holdItems = [
+    "Опора ощущается не только в спокойных условиях, но и в повседневной нагрузке.",
+    "Внимание остаётся в настоящем даже при усталости или напряжении.",
+    "Мне не нужно специально возвращать себя в присутствие, чтобы быть устойчивым(ой).",
+    "Действия сохраняют последовательность без внутреннего насилия.",
+    "Повседневные задачи не выбивают из состояния присутствия."
+  ];
+
+  function renderList(elId, items, prefix) {
+    const root = document.getElementById(elId);
+    items.forEach((text, idx) => {
+      const n = prefix + idx + 1;
+      const id = `${elId}-${idx}`;
+      const label = document.createElement("label");
+      label.innerHTML = `<input type="checkbox" id="${id}" data-group="${elId}"> <span><strong>${n}.</strong> ${text}</span>`;
+      root.appendChild(label);
+    });
+  }
+
+  renderList("stable", stableItems, 0);
+  renderList("shadow", shadowItems, 8);
+  renderList("falseact", falseActItems, 15);
+  renderList("hold", holdItems, 0);
+
+  function countGroup(groupId) {
+    return [...document.querySelectorAll(`input[data-group="${groupId}"]`)].filter(x => x.checked).length;
+  }
+
+  function bandStable(c) {
+    if (c >= 6) return "6–8 — элементы выражены ясно";
+    if (c >= 3) return "3–5 — элементы присутствуют частично";
+    return "0–2 — элементы выражены слабо";
+  }
+
+  function bandShadow(c) {
+    if (c >= 4) return "4–7 — выражена сильно";
+    if (c >= 2) return "2–3 — проявляется точечно";
+    return "0–1 — почти не проявляется";
+  }
+
+  function bandFalse(c) {
+    if (c >= 3) return "3–4 — высокая вероятность";
+    if (c >= 1) return "1–2 — проявляется ситуативно";
+    return "0 — почти не проявляется";
+  }
+
+  function bandHold(c) {
+    if (c >= 4) return "4–5 — состояние удерживается фоново";
+    if (c >= 2) return "2–3 — состояние активируется осознанно";
+    return "0–1 — удержание слабое";
+  }
+
+  function overallBoxes(stableC, shadowC, falseC) {
+    const boxes = [];
+    if (stableC > 0) boxes.push("☑ Присутствуют элементы устойчивого заземления");
+    if (shadowC > 0) boxes.push("☑ Присутствуют элементы теневой реализации");
+    if (falseC > 0) boxes.push("☑ Присутствуют элементы ложной активации");
+    if (!boxes.length) boxes.push("☐ Пока не отмечено ни одного элемента");
+    return boxes.join("\n");
+  }
+
+  document.getElementById("calc").addEventListener("click", () => {
+    const stableC = countGroup("stable");
+    const shadowC = countGroup("shadow");
+    const falseC  = countGroup("falseact");
+    const holdC   = countGroup("hold");
+
+    const examples = document.getElementById("examples").value.trim();
+    const next = document.getElementById("next").value.trim();
+
+    const text =
+`Часть II. Подсчёт наблюдений
+Устойчивое заземление (1–8): ${stableC} из 8
+Теневая реализация (9–15): ${shadowC} из 7
+Ложная активация (16–19): ${falseC} из 4
+
+Часть III. Что показывает сочетание элементов
+Устойчивое заземление: ${bandStable(stableC)}
+Теневая реализация: ${bandShadow(shadowC)}
+Ложная активация: ${bandFalse(falseC)}
+
+Часть IV. Сопоставление текущей картины
+${overallBoxes(stableC, shadowC, falseC)}
+
+Комментарий из методики
+Если одновременно присутствуют элементы устойчивого заземления и тени — это самый частый и самый здоровый вариант.
+Он означает, что опора уже формируется, но ещё не удерживается одинаково во всех ситуациях.
+Если присутствуют элементы ложной активации — это указывает на места, где состояние похоже на заземление, но пока не удерживается.
+
+Часть V. Удержание состояния во времени
+Отмечено: ${holdC} из 5
+${bandHold(holdC)}
+
+Часть VI. Итоговая фиксация
+Как сейчас проявляется Эль Ви-Нар:
+${stableC>0 ? "☑ элементы заземления присутствуют" : "☐ элементы заземления присутствуют"}
+${shadowC>0 ? "☑ теневая динамика проявляется" : "☐ теневая динамика проявляется"}
+${falseC>0 ? "☑ ложная активация проявляется" : "☐ ложная активация проявляется"}
+
+Как удерживается состояние:
+${holdC>=4 ? "☑ Фоновый\n☐ Активирован" : (holdC>=2 ? "☐ Фоновый\n☑ Активирован" : "☐ Фоновый\n☐ Активирован")}
+
+Примеры из жизни:
+${examples || "(не заполнено)"}
+
+Часть VII. Наблюдение на следующий период
+В ближайшие дни я обращаю внимание на:
+${next || "(не заполнено)"}
+`;
+    document.getElementById("out").textContent = text;
+  });
+
+  document.getElementById("reset").addEventListener("click", () => {
+    document.querySelectorAll('input[type="checkbox"]').forEach(x => x.checked = false);
+    document.getElementById("examples").value = "";
+    document.getElementById("next").value = "";
+    document.getElementById("out").textContent = "No results yet. Mark checkboxes, then press Calculate.";
+  });
+
+  document.getElementById("copy").addEventListener("click", async () => {
+    const t = document.getElementById("out").textContent;
+    try { await navigator.clipboard.writeText(t); alert("Copied."); }
+    catch { alert("Copy failed. On iOS you may need to select and copy manually."); }
+  });
+</script>
+</body>
+</html>
