@@ -7,23 +7,44 @@
 
   <style>
     :root { color-scheme: light; }
-    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; line-height: 1.35; }
+
+    html, body { height: 100%; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      line-height: 1.35;
+      -webkit-overflow-scrolling: touch;
+    }
+
     .wrap { max-width: 760px; margin: 0 auto; padding: 16px; }
     h1 { font-size: 20px; margin: 0 0 8px; }
     h2 { font-size: 16px; margin: 18px 0 8px; }
     p { margin: 8px 0; }
     .note { font-size: 13px; opacity: 0.85; }
     .card { border: 1px solid rgba(0,0,0,0.12); border-radius: 12px; padding: 12px; margin: 10px 0; }
-    .checklist { display: grid; gap: 10px; }
+
+    .checklist { display: grid; gap: 10px; touch-action: manipulation; }
     label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+    label span { line-height: 1.45; }
     input[type="checkbox"] { width: 18px; height: 18px; margin-top: 2px; flex: 0 0 auto; }
+
     .row { display: flex; gap: 10px; flex-wrap: wrap; }
     button { border: 1px solid rgba(0,0,0,0.15); background: #fff; border-radius: 10px; padding: 10px 12px; cursor: pointer; }
     button:hover { background: rgba(0,0,0,0.03); }
+
     .small { font-size: 13px; }
     textarea { width: 100%; min-height: 90px; resize: vertical; padding: 10px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.15); }
+
     .divider { height: 1px; background: rgba(0,0,0,0.08); margin: 14px 0; }
     .muted { opacity: 0.85; }
+
+    input[type="checkbox"]:focus-visible,
+    button:focus-visible,
+    textarea:focus-visible {
+      outline: 2px solid rgba(0,0,0,0.35);
+      outline-offset: 2px;
+    }
 
     /* Readable Results UI */
     .results-grid { display: grid; gap: 10px; }
@@ -37,7 +58,12 @@
     .two-col { display: grid; gap: 10px; }
     @media (min-width: 680px) { .two-col { grid-template-columns: 1fr 1fr; } }
 
-    .plain-output { display: none; white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size: 13px; }
+    .plain-output {
+      display: none;
+      white-space: pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+    }
 
     /* Print / PDF layout */
     @media print {
@@ -52,6 +78,7 @@
       h1 { font-size: 18px; margin-bottom: 6px; }
       h2 { font-size: 14px; margin: 10px 0 6px; }
       .box { break-inside: avoid; }
+      p { break-inside: avoid; }
     }
   </style>
 </head>
@@ -59,11 +86,10 @@
 <body>
   <div class="wrap">
     <h1>Диагностика тэттраглифа Эль Ви-Нар — «Заземление»</h1>
-    <p class="note">Период наблюдения: последние 3–7 дней. Отмечайте только то, что вы действительно наблюдали, а не то, что «должно быть».</p>
+    <p class="note">Период наблюдения: последние 3–7 дней. Отмечайте только то, что вы действительно наблюдали, без оценки и интерпретации.</p>
 
     <div class="card">
       <h2>Часть I. Наблюдения</h2>
-      <p class="note">Вопросы намеренно перемешаны. Это помогает отвечать честнее и точнее.</p>
       <div class="checklist" id="part1Mixed"></div>
     </div>
 
@@ -157,6 +183,14 @@
     return a;
   }
 
+  function escapeAttr(s) {
+    return (s || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("\"", "&quot;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;");
+  }
+
   function renderPart1Mixed() {
     const root = document.getElementById("part1Mixed");
     root.innerHTML = "";
@@ -165,7 +199,10 @@
       const id = `p1-${idx}-${Math.random().toString(16).slice(2)}`;
       const label = document.createElement("label");
       label.innerHTML =
-        `<input type="checkbox" id="${id}" data-group="${item.group}">
+        `<input type="checkbox"
+                id="${id}"
+                data-group="${item.group}"
+                data-text="${escapeAttr(item.text)}">
          <span>${item.text}</span>`;
       root.appendChild(label);
     });
@@ -178,7 +215,10 @@
       const id = `hold-${idx}`;
       const label = document.createElement("label");
       label.innerHTML =
-        `<input type="checkbox" id="${id}" data-group="hold">
+        `<input type="checkbox"
+                id="${id}"
+                data-group="hold"
+                data-text="${escapeAttr(text)}">
          <span>${text}</span>`;
       root.appendChild(label);
     });
@@ -313,15 +353,11 @@
 
   /*
     New anchor concept: factual evidence from checked items.
-    Required utility functions per spec.
   */
   function getCheckedTextsByGroup(groupId) {
     return [...document.querySelectorAll(`input[data-group="${groupId}"]`)]
       .filter(x => x.checked)
-      .map(x => {
-        const span = x.parentElement?.querySelector("span");
-        return (span?.textContent || "").trim();
-      })
+      .map(x => (x.getAttribute("data-text") || "").trim())
       .filter(Boolean);
   }
 
@@ -353,7 +389,7 @@
   }
 
   /*
-    Updated buildPersonalSummary per spec: base + anchor evidence + false label + hold + focus.
+    Personal summary: base + anchor evidence + false label + hold + focus.
   */
   function buildPersonalSummary(stableC, shadowC, falseC, holdC) {
     const Z_level = mapZ(stableC);
