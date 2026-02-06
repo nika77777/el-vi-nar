@@ -20,12 +20,26 @@
     .row { display: flex; gap: 10px; flex-wrap: wrap; }
     button { border: 1px solid rgba(0,0,0,0.15); background: #fff; border-radius: 10px; padding: 10px 12px; cursor: pointer; }
     button:hover { background: rgba(0,0,0,0.03); }
-    .result { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size: 13px; }
     .small { font-size: 13px; }
     textarea { width: 100%; min-height: 90px; resize: vertical; padding: 10px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.15); }
     .divider { height: 1px; background: rgba(0,0,0,0.08); margin: 14px 0; }
-    .pill { display: inline-block; padding: 3px 8px; border: 1px solid rgba(0,0,0,0.12); border-radius: 999px; font-size: 12px; }
     .muted { opacity: 0.85; }
+
+    /* Readable Results UI */
+    .results-grid { display: grid; gap: 10px; }
+    .box { border: 1px solid rgba(0,0,0,0.10); border-radius: 12px; padding: 12px; background: rgba(0,0,0,0.015); }
+    .box h3 { margin: 0 0 8px; font-size: 14px; }
+    .kpi { display: grid; gap: 6px; font-size: 13px; }
+    .kpi-row { display: flex; justify-content: space-between; gap: 12px; }
+    .kpi-row strong { font-weight: 600; }
+    .tag { display: inline-block; font-size: 12px; padding: 3px 8px; border-radius: 999px; border: 1px solid rgba(0,0,0,0.12); background: #fff; }
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    ul { margin: 8px 0 0 18px; padding: 0; }
+    li { margin: 6px 0; }
+    .two-col { display: grid; gap: 10px; }
+    @media (min-width: 680px) { .two-col { grid-template-columns: 1fr 1fr; } }
+
+    .plain-output { display: none; white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size: 13px; }
 
     /* Print / PDF layout */
     @media print {
@@ -37,9 +51,9 @@
       .divider { display: none; }
       label { cursor: default; }
       input[type="checkbox"] { transform: translateY(1px); }
-      .result { font-size: 12px; }
       h1 { font-size: 18px; margin-bottom: 6px; }
       h2 { font-size: 14px; margin: 10px 0 6px; }
+      .box { break-inside: avoid; }
     }
   </style>
 </head>
@@ -51,14 +65,8 @@
 
     <div class="card">
       <h2>Часть I. Наблюдения</h2>
-      <p class="note">Вопросы намеренно перемешаны. Это помогает отвечать честнее и точнее, без желания «выглядеть нормально».</p>
-
+      <p class="note">Вопросы намеренно перемешаны. Это помогает отвечать честнее и точнее.</p>
       <div class="checklist" id="part1Mixed"></div>
-
-      <div class="divider"></div>
-
-      <p class="pill">Подсказка</p>
-      <p class="note muted">Числа в скобках — это исходные номера пунктов из методики (1–19). Они оставлены для точности и удобства сверки, но порядок отображения перемешан.</p>
     </div>
 
     <div class="card">
@@ -88,7 +96,16 @@
 
     <div class="card">
       <h2>Результаты</h2>
-      <div class="result" id="out">Пока нет результатов. Отметьте пункты и нажмите «Рассчитать».</div>
+
+      <div class="results-grid" id="resultsUI">
+        <div class="box">
+          <h3>Пока нет результатов</h3>
+          <p class="muted" style="margin:0;">Отметьте пункты и нажмите «Рассчитать».</p>
+        </div>
+      </div>
+
+      <!-- Plain text version used for Copy -->
+      <div class="plain-output" id="plainOut"></div>
     </div>
 
     <p class="note print-hide">Конфиденциальность: страница не отправляет ответы никуда. Всё рассчитывается только в вашем браузере.</p>
@@ -96,43 +113,40 @@
 
 <script>
   /*
-    Part I items:
-    We keep original numbering from the method (1–19) but display in mixed order.
-    Each item has a group:
-      stable  => items 1–8
-      shadow  => items 9–15
-      falseact=> items 16–19
+    Part I items are shuffled on each load.
+    We do NOT show any original numbering in the UI.
+    Each item has a hidden group for correct scoring.
   */
 
   const part1Items = [
-    { num: 1, group: "stable", text: "Внимание удерживается в текущем действии, без необходимости специально себя возвращать." },
-    { num: 2, group: "stable", text: "В теле большую часть времени ощущается опора без зажима и усилия." },
-    { num: 3, group: "stable", text: "Я ясно ощущаю факт своего присутствия, без необходимости его подтверждать." },
-    { num: 4, group: "stable", text: "Я понимаю, что делаю и зачем, без внутреннего шума и противоречивых импульсов." },
-    { num: 5, group: "stable", text: "Я чувствую своё внутреннее состояние и не теряю с ним контакт, даже когда занят(а) делами." },
-    { num: 6, group: "stable", text: "Я вижу, что происходит сейчас, и понимаю следующий практический шаг." },
-    { num: 7, group: "stable", text: "Повседневные ситуации в целом переживаются как выдерживаемые и понятные." },
-    { num: 8, group: "stable", text: "Присутствие естественно переходит в действия и решения, без разрыва между ощущением и поступком." },
+    { group: "stable",  text: "Внимание удерживается в текущем действии, без необходимости специально себя возвращать." },
+    { group: "stable",  text: "В теле большую часть времени ощущается опора без зажима и усилия." },
+    { group: "stable",  text: "Я ясно ощущаю факт своего присутствия, без необходимости его подтверждать." },
+    { group: "stable",  text: "Я понимаю, что делаю и зачем, без внутреннего шума и противоречивых импульсов." },
+    { group: "stable",  text: "Я чувствую своё внутреннее состояние и не теряю с ним контакт, даже когда занят(а) делами." },
+    { group: "stable",  text: "Я вижу, что происходит сейчас, и понимаю следующий практический шаг." },
+    { group: "stable",  text: "Повседневные ситуации в целом переживаются как выдерживаемые и понятные." },
+    { group: "stable",  text: "Присутствие естественно переходит в действия и решения, без разрыва между ощущением и поступком." },
 
-    { num: 9,  group: "shadow", text: "Внимание часто уходит в прошлое или тревожное будущее." },
-    { num: 10, group: "shadow", text: "Я замечаю фоновое сканирование угроз или ожидание проблем." },
-    { num: 11, group: "shadow", text: "Даже в спокойных ситуациях внутри остаётся настороженность." },
-    { num: 12, group: "shadow", text: "Опора ощущается через напряжение, собранность или контроль." },
-    { num: 13, group: "shadow", text: "Реальность часто переживается как хаотичная, давящая или небезопасная." },
-    { num: 14, group: "shadow", text: "Решения принимаются, чтобы быстрее снизить внутреннее напряжение." },
-    { num: 15, group: "shadow", text: "Я избегаю некоторых шагов, потому что они вызывают внутренний дискомфорт." },
+    { group: "shadow",  text: "Внимание часто уходит в прошлое или тревожное будущее." },
+    { group: "shadow",  text: "Я замечаю фоновое сканирование угроз или ожидание проблем." },
+    { group: "shadow",  text: "Даже в спокойных ситуациях внутри остаётся настороженность." },
+    { group: "shadow",  text: "Опора ощущается через напряжение, собранность или контроль." },
+    { group: "shadow",  text: "Реальность часто переживается как хаотичная, давящая или небезопасная." },
+    { group: "shadow",  text: "Решения принимаются, чтобы быстрее снизить внутреннее напряжение." },
+    { group: "shadow",  text: "Я избегаю некоторых шагов, потому что они вызывают внутренний дискомфорт." },
 
-    { num: 16, group: "falseact", text: "Иногда кажется, что я в опоре, но это состояние быстро рассеивается." },
-    { num: 17, group: "falseact", text: "Чтобы быть устойчивым(ой), мне нужно каждый раз «собираться»." },
-    { num: 18, group: "falseact", text: "Я могу много делать, но при этом не чувствовать присутствия в этих действиях." },
-    { num: 19, group: "falseact", text: "После ощущения устойчивости напряжение или тревога возвращаются." }
+    { group: "falseact", text: "Иногда кажется, что я в опоре, но это состояние быстро рассеивается." },
+    { group: "falseact", text: "Чтобы быть устойчивым(ой), мне нужно каждый раз «собираться»." },
+    { group: "falseact", text: "Я могу много делать, но при этом не чувствовать присутствия в этих действиях." },
+    { group: "falseact", text: "После ощущения устойчивости напряжение или тревога возвращаются." }
   ];
 
   const holdItems = [
     "Опора ощущается не только в спокойных условиях, но и в повседневной нагрузке.",
     "Внимание остаётся в настоящем даже при усталости или напряжении.",
     "Мне не нужно специально возвращать себя в присутствие, чтобы быть устойчивым(ой).",
-    "Действия сохраняют последовательность без внутреннего насилия.",
+    "Действия сохраняют последовательность без внутреннего давления.",
     "Повседневные задачи не выбивают из состояния присутствия."
   ];
 
@@ -149,12 +163,12 @@
     const root = document.getElementById("part1Mixed");
     root.innerHTML = "";
     const mixed = shuffle(part1Items);
-    mixed.forEach((item) => {
-      const id = `p1-${item.num}`;
+    mixed.forEach((item, idx) => {
+      const id = `p1-${idx}-${Math.random().toString(16).slice(2)}`;
       const label = document.createElement("label");
       label.innerHTML =
-        `<input type="checkbox" id="${id}" data-group="${item.group}" data-num="${item.num}">
-         <span><strong>(${item.num})</strong> ${item.text}</span>`;
+        `<input type="checkbox" id="${id}" data-group="${item.group}">
+         <span>${item.text}</span>`;
       root.appendChild(label);
     });
   }
@@ -167,7 +181,7 @@
       const label = document.createElement("label");
       label.innerHTML =
         `<input type="checkbox" id="${id}" data-group="hold">
-         <span><strong>${idx + 1}.</strong> ${text}</span>`;
+         <span>${text}</span>`;
       root.appendChild(label);
     });
   }
@@ -180,36 +194,137 @@
   }
 
   function bandStable(c) {
-    if (c >= 6) return "6–8 — элементы выражены ясно";
-    if (c >= 3) return "3–5 — элементы присутствуют частично";
-    return "0–2 — элементы выражены слабо";
+    if (c >= 6) return "выражено ясно";
+    if (c >= 3) return "присутствует частично";
+    return "выражено слабо";
   }
 
   function bandShadow(c) {
-    if (c >= 4) return "4–7 — выражена сильно";
-    if (c >= 2) return "2–3 — проявляется точечно";
-    return "0–1 — почти не проявляется";
+    if (c >= 4) return "выражено сильно";
+    if (c >= 2) return "проявляется точечно";
+    return "почти не проявляется";
   }
 
   function bandFalse(c) {
-    if (c >= 3) return "3–4 — высокая вероятность";
-    if (c >= 1) return "1–2 — проявляется ситуативно";
-    return "0 — почти не проявляется";
+    if (c >= 3) return "высокая вероятность";
+    if (c >= 1) return "проявляется ситуативно";
+    return "почти не проявляется";
   }
 
   function bandHold(c) {
-    if (c >= 4) return "4–5 — состояние удерживается фоново";
-    if (c >= 2) return "2–3 — состояние активируется осознанно";
-    return "0–1 — удержание слабое";
+    if (c >= 4) return "удерживается фоново";
+    if (c >= 2) return "активируется осознанно";
+    return "удержание слабое";
   }
 
-  function overallBoxes(stableC, shadowC, falseC) {
-    const boxes = [];
-    if (stableC > 0) boxes.push("☑ Присутствуют элементы устойчивого заземления");
-    if (shadowC > 0) boxes.push("☑ Присутствуют элементы теневой реализации");
-    if (falseC > 0) boxes.push("☑ Присутствуют элементы ложной активации");
-    if (!boxes.length) boxes.push("☐ Пока не отмечено ни одного элемента");
-    return boxes.join("\n");
+  function buildTags(stableC, shadowC, falseC, holdC) {
+    const tags = [];
+    if (stableC >= 6) tags.push("Устойчивое заземление — выражено");
+    else if (stableC >= 3) tags.push("Устойчивое заземление — частично");
+    else tags.push("Устойчивое заземление — слабее");
+
+    if (shadowC >= 4) tags.push("Теневая динамика — сильнее");
+    else if (shadowC >= 2) tags.push("Теневая динамика — точечно");
+    else tags.push("Теневая динамика — минимально");
+
+    if (falseC >= 3) tags.push("Ложная активация — вероятна");
+    else if (falseC >= 1) tags.push("Ложная активация — ситуативно");
+    else tags.push("Ложная активация — минимально");
+
+    if (holdC >= 4) tags.push("Удержание — фоново");
+    else if (holdC >= 2) tags.push("Удержание — активируемо");
+    else tags.push("Удержание — слабее");
+
+    return tags;
+  }
+
+  function setResultsUI(payload) {
+    const root = document.getElementById("resultsUI");
+    root.innerHTML = "";
+
+    const { stableC, shadowC, falseC, holdC, examples, next, commentary } = payload;
+
+    const tags = buildTags(stableC, shadowC, falseC, holdC);
+
+    const kpiBox = document.createElement("div");
+    kpiBox.className = "box";
+    kpiBox.innerHTML = `
+      <h3>Сводка</h3>
+      <div class="kpi">
+        <div class="kpi-row"><span>Устойчивое заземление</span><strong>${stableC} / 8</strong></div>
+        <div class="kpi-row"><span>Теневая реализация</span><strong>${shadowC} / 7</strong></div>
+        <div class="kpi-row"><span>Ложная активация</span><strong>${falseC} / 4</strong></div>
+        <div class="kpi-row"><span>Удержание во времени</span><strong>${holdC} / 5</strong></div>
+      </div>
+      <div class="tags">${tags.map(t => `<span class="tag">${t}</span>`).join("")}</div>
+    `;
+    root.appendChild(kpiBox);
+
+    const two = document.createElement("div");
+    two.className = "two-col";
+
+    const interpret = document.createElement("div");
+    interpret.className = "box";
+    interpret.innerHTML = `
+      <h3>Интерпретация шкал</h3>
+      <ul>
+        <li><strong>Устойчивое заземление:</strong> ${bandStable(stableC)}.</li>
+        <li><strong>Теневая реализация:</strong> ${bandShadow(shadowC)}.</li>
+        <li><strong>Ложная активация:</strong> ${bandFalse(falseC)}.</li>
+        <li><strong>Удержание:</strong> ${bandHold(holdC)}.</li>
+      </ul>
+    `;
+
+    const note = document.createElement("div");
+    note.className = "box";
+    note.innerHTML = `
+      <h3>Комментарий из методики</h3>
+      <p style="margin:0;">${commentary}</p>
+    `;
+
+    two.appendChild(interpret);
+    two.appendChild(note);
+    root.appendChild(two);
+
+    const textBox = document.createElement("div");
+    textBox.className = "box";
+    textBox.innerHTML = `
+      <h3>Личные заметки</h3>
+      <p class="muted" style="margin:0 0 8px;"><strong>Примеры из жизни:</strong><br>${examples || "—"}</p>
+      <p class="muted" style="margin:0;"><strong>В ближайшие дни я обращаю внимание на:</strong><br>${next || "—"}</p>
+    `;
+    root.appendChild(textBox);
+  }
+
+  function setPlainText(payload) {
+    const { stableC, shadowC, falseC, holdC, examples, next, commentary } = payload;
+    const text =
+`СВОДКА
+Устойчивое заземление: ${stableC} из 8
+Теневая реализация: ${shadowC} из 7
+Ложная активация: ${falseC} из 4
+Удержание во времени: ${holdC} из 5
+
+ИНТЕРПРЕТАЦИЯ
+Устойчивое заземление: ${bandStable(stableC)}
+Теневая реализация: ${bandShadow(shadowC)}
+Ложная активация: ${bandFalse(falseC)}
+Удержание: ${bandHold(holdC)}
+
+КОММЕНТАРИЙ
+${commentary}
+
+ПРИМЕРЫ ИЗ ЖИЗНИ
+${examples || "—"}
+
+ФОКУС НА СЛЕДУЮЩИЕ ДНИ
+${next || "—"}
+`;
+    document.getElementById("plainOut").textContent = text;
+  }
+
+  function getCommentary() {
+    return "Если одновременно присутствуют элементы устойчивого заземления и тени — это самый частый и самый здоровый вариант. Он означает, что опора уже формируется, но ещё не удерживается одинаково во всех ситуациях. Если присутствуют элементы ложной активации — это указывает на места, где состояние похоже на заземление, но пока не удерживается.";
   }
 
   document.getElementById("calc").addEventListener("click", () => {
@@ -221,70 +336,48 @@
     const examples = document.getElementById("examples").value.trim();
     const next = document.getElementById("next").value.trim();
 
-    const text =
-`Часть II. Подсчёт наблюдений
-Устойчивое заземление (1–8): ${stableC} из 8
-Теневая реализация (9–15): ${shadowC} из 7
-Ложная активация (16–19): ${falseC} из 4
+    const payload = {
+      stableC, shadowC, falseC, holdC,
+      examples, next,
+      commentary: getCommentary()
+    };
 
-Часть III. Что показывает сочетание элементов
-Устойчивое заземление: ${bandStable(stableC)}
-Теневая реализация: ${bandShadow(shadowC)}
-Ложная активация: ${bandFalse(falseC)}
-
-Часть IV. Сопоставление текущей картины
-${overallBoxes(stableC, shadowC, falseC)}
-
-Комментарий из методики
-Если одновременно присутствуют элементы устойчивого заземления и тени — это самый частый и самый здоровый вариант.
-Он означает, что опора уже формируется, но ещё не удерживается одинаково во всех ситуациях.
-Если присутствуют элементы ложной активации — это указывает на места, где состояние похоже на заземление, но пока не удерживается.
-
-Часть V. Удержание состояния во времени
-Отмечено: ${holdC} из 5
-${bandHold(holdC)}
-
-Часть VI. Итоговая фиксация
-Как сейчас проявляется Эль Ви-Нар:
-${stableC>0 ? "☑ элементы заземления присутствуют" : "☐ элементы заземления присутствуют"}
-${shadowC>0 ? "☑ теневая динамика проявляется" : "☐ теневая динамика проявляется"}
-${falseC>0 ? "☑ ложная активация проявляется" : "☐ ложная активация проявляется"}
-
-Как удерживается состояние:
-${holdC>=4 ? "☑ Фоновый\n☐ Активирован" : (holdC>=2 ? "☐ Фоновый\n☑ Активирован" : "☐ Фоновый\n☐ Активирован")}
-
-Примеры из жизни:
-${examples || "(не заполнено)"}
-
-Часть VII. Наблюдение на следующий период
-В ближайшие дни я обращаю внимание на:
-${next || "(не заполнено)"}
-`;
-
-    document.getElementById("out").textContent = text;
+    setResultsUI(payload);
+    setPlainText(payload);
   });
 
   document.getElementById("reset").addEventListener("click", () => {
     document.querySelectorAll('input[type="checkbox"]').forEach(x => x.checked = false);
     document.getElementById("examples").value = "";
     document.getElementById("next").value = "";
-    document.getElementById("out").textContent = "Пока нет результатов. Отметьте пункты и нажмите «Рассчитать».";
+
+    const root = document.getElementById("resultsUI");
+    root.innerHTML = `
+      <div class="box">
+        <h3>Пока нет результатов</h3>
+        <p class="muted" style="margin:0;">Отметьте пункты и нажмите «Рассчитать».</p>
+      </div>
+    `;
+    document.getElementById("plainOut").textContent = "";
+
     renderPart1Mixed(); // перемешать заново
   });
 
   document.getElementById("copy").addEventListener("click", async () => {
-    const t = document.getElementById("out").textContent;
+    const t = document.getElementById("plainOut").textContent.trim();
+    if (!t) {
+      alert("Сначала нажмите «Рассчитать», чтобы появился результат.");
+      return;
+    }
     try {
       await navigator.clipboard.writeText(t);
       alert("Результат скопирован.");
     } catch {
-      alert("Не удалось скопировать автоматически. На iPhone/iPad выделите текст и скопируйте вручную.");
+      alert("Не удалось скопировать автоматически. На iPhone/iPad выделите текст результата и скопируйте вручную.");
     }
   });
 
   document.getElementById("pdf").addEventListener("click", () => {
-    // В браузерах сохранение в PDF делается через печать.
-    // Мы подготовили CSS для печати, чтобы PDF выглядел аккуратно.
     window.print();
   });
 </script>
