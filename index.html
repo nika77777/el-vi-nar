@@ -1,9 +1,10 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Эль Ви-Нар — Диагностика</title>
+  <title>Эль Ви-Нар — Диагностический калькулятор</title>
+
   <style>
     :root { color-scheme: light; }
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; line-height: 1.35; }
@@ -24,28 +25,40 @@
     textarea { width: 100%; min-height: 90px; resize: vertical; padding: 10px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.15); }
     .divider { height: 1px; background: rgba(0,0,0,0.08); margin: 14px 0; }
     .pill { display: inline-block; padding: 3px 8px; border: 1px solid rgba(0,0,0,0.12); border-radius: 999px; font-size: 12px; }
+    .muted { opacity: 0.85; }
+
+    /* Print / PDF layout */
+    @media print {
+      body { margin: 0; }
+      .wrap { max-width: 100%; padding: 0; }
+      .card { border: 0; border-radius: 0; padding: 0; margin: 12px 0; }
+      .row, .note.print-hide, .print-hide { display: none !important; }
+      textarea { border: 0; padding: 0; min-height: 0; }
+      .divider { display: none; }
+      label { cursor: default; }
+      input[type="checkbox"] { transform: translateY(1px); }
+      .result { font-size: 12px; }
+      h1 { font-size: 18px; margin-bottom: 6px; }
+      h2 { font-size: 14px; margin: 10px 0 6px; }
+    }
   </style>
 </head>
+
 <body>
   <div class="wrap">
     <h1>Диагностика тэттраглифа Эль Ви-Нар — «Заземление»</h1>
-    <p class="note">Работайте с наблюдениями за последние 3–7 дней. Отмечайте только то, что вы действительно замечали.</p>
+    <p class="note">Период наблюдения: последние 3–7 дней. Отмечайте только то, что вы действительно наблюдали, а не то, что «должно быть».</p>
 
     <div class="card">
       <h2>Часть I. Наблюдения</h2>
+      <p class="note">Вопросы намеренно перемешаны. Это помогает отвечать честнее и точнее, без желания «выглядеть нормально».</p>
 
-      <p class="pill">Устойчивое заземление (1–8)</p>
-      <div class="checklist" id="stable"></div>
-
-      <div class="divider"></div>
-
-      <p class="pill">Теневая реализация (9–15)</p>
-      <div class="checklist" id="shadow"></div>
+      <div class="checklist" id="part1Mixed"></div>
 
       <div class="divider"></div>
 
-      <p class="pill">Ложная активация (16–19)</p>
-      <div class="checklist" id="falseact"></div>
+      <p class="pill">Подсказка</p>
+      <p class="note muted">Числа в скобках — это исходные номера пунктов из методики (1–19). Они оставлены для точности и удобства сверки, но порядок отображения перемешан.</p>
     </div>
 
     <div class="card">
@@ -56,6 +69,7 @@
 
     <div class="card">
       <h2>Часть VI. Итоговая фиксация</h2>
+
       <p class="small">Примеры из жизни:</p>
       <textarea id="examples" placeholder="Запишите 2–5 коротких примеров из наблюдений..."></textarea>
 
@@ -65,47 +79,53 @@
       <textarea id="next" placeholder="Запишите, на что вы будете обращать внимание в следующие дни..."></textarea>
     </div>
 
-    <div class="row">
-      <button id="calc">Calculate</button>
-      <button id="reset">Reset</button>
-      <button id="copy">Copy results</button>
+    <div class="row print-hide">
+      <button id="calc">Рассчитать</button>
+      <button id="reset">Сбросить</button>
+      <button id="copy">Скопировать результат</button>
+      <button id="pdf">Скачать PDF</button>
     </div>
 
     <div class="card">
       <h2>Результаты</h2>
-      <div class="result" id="out">No results yet. Mark checkboxes, then press Calculate.</div>
+      <div class="result" id="out">Пока нет результатов. Отметьте пункты и нажмите «Рассчитать».</div>
     </div>
 
-    <p class="note">Privacy: this page does not send your answers anywhere. Everything is calculated in your browser.</p>
+    <p class="note print-hide">Конфиденциальность: страница не отправляет ответы никуда. Всё рассчитывается только в вашем браузере.</p>
   </div>
 
 <script>
-  const stableItems = [
-    "Внимание удерживается в текущем действии, без необходимости специально себя возвращать.",
-    "В теле большую часть времени ощущается опора без зажима и усилия.",
-    "Я ясно ощущаю факт своего присутствия, без необходимости его подтверждать.",
-    "Я понимаю, что делаю и зачем, без внутреннего шума и противоречивых импульсов.",
-    "Я чувствую своё внутреннее состояние и не теряю с ним контакт, даже когда занят(а) делами.",
-    "Я вижу, что происходит сейчас, и понимаю следующий практический шаг.",
-    "Повседневные ситуации в целом переживаются как выдерживаемые и понятные.",
-    "Присутствие естественно переходит в действия и решения, без разрыва между ощущением и поступком."
-  ];
+  /*
+    Part I items:
+    We keep original numbering from the method (1–19) but display in mixed order.
+    Each item has a group:
+      stable  => items 1–8
+      shadow  => items 9–15
+      falseact=> items 16–19
+  */
 
-  const shadowItems = [
-    "Внимание часто уходит в прошлое или тревожное будущее.",
-    "Я замечаю фоновое сканирование угроз или ожидание проблем.",
-    "Даже в спокойных ситуациях внутри остаётся настороженность.",
-    "Опора ощущается через напряжение, собранность или контроль.",
-    "Реальность часто переживается как хаотичная, давящая или небезопасная.",
-    "Решения принимаются, чтобы быстрее снизить внутреннее напряжение.",
-    "Я избегаю некоторых шагов, потому что они вызывают внутренний дискомфорт."
-  ];
+  const part1Items = [
+    { num: 1, group: "stable", text: "Внимание удерживается в текущем действии, без необходимости специально себя возвращать." },
+    { num: 2, group: "stable", text: "В теле большую часть времени ощущается опора без зажима и усилия." },
+    { num: 3, group: "stable", text: "Я ясно ощущаю факт своего присутствия, без необходимости его подтверждать." },
+    { num: 4, group: "stable", text: "Я понимаю, что делаю и зачем, без внутреннего шума и противоречивых импульсов." },
+    { num: 5, group: "stable", text: "Я чувствую своё внутреннее состояние и не теряю с ним контакт, даже когда занят(а) делами." },
+    { num: 6, group: "stable", text: "Я вижу, что происходит сейчас, и понимаю следующий практический шаг." },
+    { num: 7, group: "stable", text: "Повседневные ситуации в целом переживаются как выдерживаемые и понятные." },
+    { num: 8, group: "stable", text: "Присутствие естественно переходит в действия и решения, без разрыва между ощущением и поступком." },
 
-  const falseActItems = [
-    "Иногда кажется, что я в опоре, но это состояние быстро рассеивается.",
-    "Чтобы быть устойчивым(ой), мне нужно каждый раз «собираться».",
-    "Я могу много делать, но при этом не чувствовать присутствия в этих действиях.",
-    "После ощущения устойчивости напряжение или тревога возвращаются."
+    { num: 9,  group: "shadow", text: "Внимание часто уходит в прошлое или тревожное будущее." },
+    { num: 10, group: "shadow", text: "Я замечаю фоновое сканирование угроз или ожидание проблем." },
+    { num: 11, group: "shadow", text: "Даже в спокойных ситуациях внутри остаётся настороженность." },
+    { num: 12, group: "shadow", text: "Опора ощущается через напряжение, собранность или контроль." },
+    { num: 13, group: "shadow", text: "Реальность часто переживается как хаотичная, давящая или небезопасная." },
+    { num: 14, group: "shadow", text: "Решения принимаются, чтобы быстрее снизить внутреннее напряжение." },
+    { num: 15, group: "shadow", text: "Я избегаю некоторых шагов, потому что они вызывают внутренний дискомфорт." },
+
+    { num: 16, group: "falseact", text: "Иногда кажется, что я в опоре, но это состояние быстро рассеивается." },
+    { num: 17, group: "falseact", text: "Чтобы быть устойчивым(ой), мне нужно каждый раз «собираться»." },
+    { num: 18, group: "falseact", text: "Я могу много делать, но при этом не чувствовать присутствия в этих действиях." },
+    { num: 19, group: "falseact", text: "После ощущения устойчивости напряжение или тревога возвращаются." }
   ];
 
   const holdItems = [
@@ -116,21 +136,44 @@
     "Повседневные задачи не выбивают из состояния присутствия."
   ];
 
-  function renderList(elId, items, prefix) {
-    const root = document.getElementById(elId);
-    items.forEach((text, idx) => {
-      const n = prefix + idx + 1;
-      const id = `${elId}-${idx}`;
+  function shuffle(array) {
+    const a = array.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function renderPart1Mixed() {
+    const root = document.getElementById("part1Mixed");
+    root.innerHTML = "";
+    const mixed = shuffle(part1Items);
+    mixed.forEach((item) => {
+      const id = `p1-${item.num}`;
       const label = document.createElement("label");
-      label.innerHTML = `<input type="checkbox" id="${id}" data-group="${elId}"> <span><strong>${n}.</strong> ${text}</span>`;
+      label.innerHTML =
+        `<input type="checkbox" id="${id}" data-group="${item.group}" data-num="${item.num}">
+         <span><strong>(${item.num})</strong> ${item.text}</span>`;
       root.appendChild(label);
     });
   }
 
-  renderList("stable", stableItems, 0);
-  renderList("shadow", shadowItems, 8);
-  renderList("falseact", falseActItems, 15);
-  renderList("hold", holdItems, 0);
+  function renderHold() {
+    const root = document.getElementById("hold");
+    root.innerHTML = "";
+    holdItems.forEach((text, idx) => {
+      const id = `hold-${idx}`;
+      const label = document.createElement("label");
+      label.innerHTML =
+        `<input type="checkbox" id="${id}" data-group="hold">
+         <span><strong>${idx + 1}.</strong> ${text}</span>`;
+      root.appendChild(label);
+    });
+  }
+
+  renderPart1Mixed();
+  renderHold();
 
   function countGroup(groupId) {
     return [...document.querySelectorAll(`input[data-group="${groupId}"]`)].filter(x => x.checked).length;
@@ -217,6 +260,7 @@ ${examples || "(не заполнено)"}
 В ближайшие дни я обращаю внимание на:
 ${next || "(не заполнено)"}
 `;
+
     document.getElementById("out").textContent = text;
   });
 
@@ -224,13 +268,24 @@ ${next || "(не заполнено)"}
     document.querySelectorAll('input[type="checkbox"]').forEach(x => x.checked = false);
     document.getElementById("examples").value = "";
     document.getElementById("next").value = "";
-    document.getElementById("out").textContent = "No results yet. Mark checkboxes, then press Calculate.";
+    document.getElementById("out").textContent = "Пока нет результатов. Отметьте пункты и нажмите «Рассчитать».";
+    renderPart1Mixed(); // перемешать заново
   });
 
   document.getElementById("copy").addEventListener("click", async () => {
     const t = document.getElementById("out").textContent;
-    try { await navigator.clipboard.writeText(t); alert("Copied."); }
-    catch { alert("Copy failed. On iOS you may need to select and copy manually."); }
+    try {
+      await navigator.clipboard.writeText(t);
+      alert("Результат скопирован.");
+    } catch {
+      alert("Не удалось скопировать автоматически. На iPhone/iPad выделите текст и скопируйте вручную.");
+    }
+  });
+
+  document.getElementById("pdf").addEventListener("click", () => {
+    // В браузерах сохранение в PDF делается через печать.
+    // Мы подготовили CSS для печати, чтобы PDF выглядел аккуратно.
+    window.print();
   });
 </script>
 </body>
