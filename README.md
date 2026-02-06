@@ -1,2 +1,2 @@
-# El-vi-nar
+# el-vi-nar
 Repository for tettraglyph El Vi-Nar
