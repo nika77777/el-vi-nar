@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Эль Ви-Нар — тренажёр порядка рисования</title>
+
+  <style>
+    :root { color-scheme: light; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; line-height: 1.35; }
+    .wrap { max-width: 860px; margin: 0 auto; padding: 16px; }
+    h1 { font-size: 20px; margin: 0 0 10px; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 10px 0 14px; }
+    .pill { display: inline-block; border: 1px solid #ddd; border-radius: 999px; padding: 6px 10px; font-size: 13px; opacity: 0.9; }
+    .stepTitle { font-size: 14px; font-weight: 700; }
+    button { appearance: none; border: 1px solid #ccc; background: #fff; padding: 10px 12px; border-radius: 10px; font-weight: 600; cursor: pointer; }
+    button:active { transform: translateY(1px); }
+    .stage { border: 1px solid #e3e3e3; border-radius: 14px; padding: 14px; touch-action: none; user-select: none; -webkit-user-select: none; }
+    svg { width: 100%; height: auto; display: block; }
+    .muted { opacity: 0.75; font-size: 13px; }
+
+    /* Пульсация движка, чтобы было понятно “что тянуть” */
+    #handle {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: pulse 1.1s infinite;
+    }
+    .dragging #handle {
+      animation: none;
+    }
+    .teleport #handle {
+      animation: none;
+      opacity: 0;
+      transition: opacity 120ms linear;
+    }
+    @keyframes pulse {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.35; transform: scale(1.22); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <h1>Эль Ви-Нар — тренажёр порядка рисования</h1>
+
+    <div class="row">
+      <span class="pill" id="stepPill">Шаг 1 из 7</span>
+      <span class="pill stepTitle" id="stepText">Зеркало Бытия → Зеркало Души</span>
+    </div>
+
+    <div class="row">
+      <button id="btnReset" type="button">Сброс</button>
+      <button id="btnBack" type="button">Назад</button>
+      <span class="muted">Потяните кружок по активной линии. Линия проявляется по мере движения. Дойдёте до конца — шаг переключится автоматически.</span>
+    </div>
+
+    <div class="stage" id="stage">
+      <!-- ВАШ SVG (вставлен inline, без xml-заголовка) -->
+      <svg
+        width="17.471024mm"
+        height="31.41024mm"
+        viewBox="0 0 17.471024 31.41024"
+        version="1.1"
+        id="svg5"
+        xmlns="http://www.w3.org/2000/svg">
+
+        <g id="layer1" style="display:inline" transform="translate(-161.76484,-11.295264)">
+
+          <path
+            d="m 162.3676,30.830773 v -3.155354 h 16.26549 v 3.155354"
+            id="seg6"
+            style="fill:none;stroke:#000000;stroke-width:0.365878;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+
+          <path
+            d="m 170.50035,11.955075 -4.55624,7.860171"
+            id="seg1"
+            style="fill:none;stroke:#000000;stroke-width:0.365878;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+
+          <path
+            d="m 165.94411,19.815246 9.11247,-4e-6"
+            id="seg2"
+            style="fill:none;stroke:#000000;stroke-width:0.365878;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+
+          <path
+            d="m 175.05658,19.815242 -4.55623,-7.860167"
+            id="seg3"
+            style="fill:none;stroke:#000000;stroke-width:0.365878;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+
+          <path
+            d="m 165.94411,19.815248 4.55624,7.860171"
+            id="seg4"
+            style="fill:none;stroke:#000000;stroke-width:0.365878;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+
+          <path
+            d="m 170.50035,27.675419 4.55623,-7.860167"
+            id="seg5"
+            style="fill:none;stroke:#000000;stroke-width:0.365878;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+
+          <path
+            id="seg7"
+            d="m 170.50034,27.675419 c 0,0 -0.97185,1.236575 -0.91015,1.958613 0.13716,1.60544 2.75374,2.128038 2.73044,3.917219 -0.0116,0.894587 -0.97083,1.423155 -1.90259,1.953447 -0.93175,0.530292 -1.89099,1.05886 -1.90259,1.953452 -0.0233,1.78918 2.59328,2.311779 2.73045,3.917218 0.0308,0.361018 -0.19669,0.850671 -0.43195,1.250065"
+            style="fill:none;stroke:#000000;stroke-width:0.365878;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+
+          <!-- Движок: увеличили радиус для пальца -->
+          <circle
+            id="handle"
+            cx="170.50035"
+            cy="11.955069"
+            r="1.1"
+            style="fill:#ffffff;stroke:#000000;stroke-width:0.35" />
+
+        </g>
+      </svg>
+      <!-- /ВАШ SVG -->
+    </div>
+  </div>
+
+  <script>
+  (() => {
+    const stage = document.getElementById('stage');
+    const svg = stage.querySelector('svg');
+    const handle = stage.querySelector('#handle');
+
+    const btnReset = document.getElementById('btnReset');
+    const btnBack = document.getElementById('btnBack');
+    const stepPill = document.getElementById('stepPill');
+    const stepText = document.getElementById('stepText');
+
+    const steps = [
+      { id: 'seg1', title: 'Зеркало Бытия → Зеркало Души' },
+      { id: 'seg2', title: 'Зеркало Души → Зеркало Сознания' },
+      { id: 'seg3', title: 'Зеркало Сознания → Зеркало Бытия' },
+      { id: 'seg4', title: 'Зеркало Души → Энергоимпульс' },
+      { id: 'seg5', title: 'Энергоимпульс → Зеркало Сознания' },
+      { id: 'seg6', title: 'Прошлое ↑ → через энергоимпульс → ↓ Будущее (одним штрихом)' },
+      { id: 'seg7', title: 'Энергоимпульс → вниз по волне Энергии заземления' },
+    ];
+
+    const paths = steps.map(s => stage.querySelector('#' + CSS.escape(s.id)));
+
+    if (!svg || !handle || paths.some(p => !p)) {
+      console.error('Не найдены svg/handle/seg-пути. Проверьте id="handle" и id="seg1..seg7".');
+      return;
+    }
+
+    const segState = paths.map(path => {
+      const total = path.getTotalLength();
+      path.style.strokeDasharray = String(total);
+      path.style.strokeDashoffset = String(total);
+      path.style.fill = 'none';
+      return { total, drawn: 0 };
+    });
+
+    let stepIndex = 0;
+    let dragging = false;
+    let pointerId = null;
+
+    const DONE_TOL = 0.992;
+    const SNAP_SAMPLES = 90;
+    const LOCAL_REFINE_ITERS = 10;
+
+    function updateHeader() {
+      stepPill.textContent = `Шаг ${stepIndex + 1} из ${steps.length}`;
+      stepText.textContent = steps[stepIndex].title;
+    }
+
+    function clientToSvgPoint(clientX, clientY) {
+      const pt = svg.createSVGPoint();
+      pt.x = clientX;
+      pt.y = clientY;
+      const ctm = svg.getScreenCTM();
+      if (!ctm) return { x: 0, y: 0 };
+      const sp = pt.matrixTransform(ctm.inverse());
+      return { x: sp.x, y: sp.y };
+    }
+
+    function nearestLengthOnPath(path, total, target) {
+      let bestLen = 0;
+      let bestDist2 = Infinity;
+
+      for (let i = 0; i <= SNAP_SAMPLES; i++) {
+        const t = i / SNAP_SAMPLES;
+        const len = total * t;
+        const pt = path.getPointAtLength(len);
+        const dx = pt.x - target.x;
+        const dy = pt.y - target.y;
+        const d2 = dx*dx + dy*dy;
+        if (d2 < bestDist2) { bestDist2 = d2; bestLen = len; }
+      }
+
+      let step = total / SNAP_SAMPLES;
+      for (let k = 0; k < LOCAL_REFINE_ITERS; k++) {
+        step *= 0.5;
+        const cands = [bestLen - step, bestLen, bestLen + step];
+        for (const len0 of cands) {
+          const len = Math.max(0, Math.min(total, len0));
+          const pt = path.getPointAtLength(len);
+          const dx = pt.x - target.x;
+          const dy = pt.y - target.y;
+          const d2 = dx*dx + dy*dy;
+          if (d2 < bestDist2) { bestDist2 = d2; bestLen = len; }
+        }
+      }
+
+      return bestLen;
+    }
+
+    function setHandleTo(path, len) {
+      const pt = path.getPointAtLength(len);
+      handle.setAttribute('cx', pt.x);
+      handle.setAttribute('cy', pt.y);
+    }
+
+    function setDraw(path, idx, len) {
+      const total = segState[idx].total;
+      const clamped = Math.max(0, Math.min(total, len));
+      segState[idx].drawn = clamped;
+      path.style.strokeDashoffset = String(total - clamped);
+    }
+
+    function teleportToNextStep() {
+      stage.classList.add('teleport');
+      const next = paths[stepIndex];
+      setHandleTo(next, 0);
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          stage.classList.remove('teleport');
+        });
+      });
+    }
+
+    function completeStep() {
+      setDraw(paths[stepIndex], stepIndex, segState[stepIndex].total);
+
+      if (stepIndex < paths.length - 1) {
+        stepIndex += 1;
+        updateHeader();
+        teleportToNextStep();
+      } else {
+        updateHeader();
+      }
+    }
+
+    function applyMove(clientX, clientY) {
+      const path = paths[stepIndex];
+      const total = segState[stepIndex].total;
+      const target = clientToSvgPoint(clientX, clientY);
+
+      const nearest = nearestLengthOnPath(path, total, target);
+
+      const nextLen = Math.max(segState[stepIndex].drawn, nearest);
+
+      setDraw(path, stepIndex, nextLen);
+      setHandleTo(path, segState[stepIndex].drawn);
+
+      if (segState[stepIndex].drawn / total >= DONE_TOL) {
+        completeStep();
+      }
+    }
+
+    function resetAll() {
+      stepIndex = 0;
+      for (let i = 0; i < paths.length; i++) setDraw(paths[i], i, 0);
+      setHandleTo(paths[0], 0);
+      updateHeader();
+    }
+
+    function backStep() {
+      if (stepIndex === 0) {
+        setDraw(paths[0], 0, 0);
+        setHandleTo(paths[0], 0);
+        updateHeader();
+        return;
+      }
+
+      setDraw(paths[stepIndex], stepIndex, 0);
+      stepIndex -= 1;
+      setDraw(paths[stepIndex], stepIndex, 0);
+      setHandleTo(paths[stepIndex], 0);
+      updateHeader();
+    }
+
+    stage.addEventListener('pointerdown', (e) => {
+      pointerId = e.pointerId;
+      stage.setPointerCapture(pointerId);
+      dragging = true;
+      stage.classList.add('dragging');
+      applyMove(e.clientX, e.clientY);
+    });
+
+    stage.addEventListener('pointermove', (e) => {
+      if (!dragging) return;
+      if (pointerId !== e.pointerId) return;
+      applyMove(e.clientX, e.clientY);
+    });
+
+    function endDrag(e) {
+      if (pointerId !== e.pointerId) return;
+      dragging = false;
+      pointerId = null;
+      stage.classList.remove('dragging');
+    }
+
+    stage.addEventListener('pointerup', endDrag);
+    stage.addEventListener('pointercancel', endDrag);
+
+    btnReset.addEventListener('click', resetAll);
+    btnBack.addEventListener('click', backStep);
+
+    resetAll();
+  })();
+  </script>
+</body>
+</html>
