@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Эль Ви-Нар — автоматическая анимация</title>
+  <title>Эль Ви-Нар — автоматическое прорисовывание</title>
 
   <style>
     :root { color-scheme: dark; }
@@ -11,11 +11,11 @@
     body {
       margin: 0;
       overflow: hidden;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
       background: #000;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
     }
 
-    /* Фон */
+    /* Фон: звёздное небо */
     #starCanvas {
       position: fixed;
       inset: 0;
@@ -24,7 +24,7 @@
       display: block;
     }
 
-    /* Слой с глифом */
+    /* Слой глифа */
     .overlay {
       position: fixed;
       inset: 0;
@@ -33,13 +33,12 @@
       pointer-events: none;
     }
 
-    /* Ограничение габаритов: максимум около 2 дюймов по ширине, чтобы не было “огромно” */
+    /* Глиф не больше 2 дюймов, но с запасом под свечение (без обрезки) */
     .glyphWrap {
       width: min(92vw, 2in);
       max-width: 2in;
-      padding: 24px; /* запас, чтобы свечения не обрезались */
+      padding: 28px;
       overflow: visible;
-      filter: drop-shadow(0 0 18px rgba(255,255,255,0.10));
     }
 
     svg {
@@ -49,169 +48,124 @@
       overflow: visible;
     }
 
-    /* Звёзды глифа */
+    /* Общее “появление из бездны” */
+    #plasmaGroup {
+      opacity: 0;
+      transition: opacity 0.0s;
+    }
+
+    /* Звёзды глифа: по умолчанию почти невидимы, затем плавно “включаются” */
     #stars .star {
-      opacity: 0.20;
-      transition: opacity 300ms linear, filter 300ms linear;
+      opacity: 0.06;
+      transition: opacity 900ms ease, filter 900ms ease;
       filter: none;
     }
     #stars .star.on {
       opacity: 1;
-      filter: drop-shadow(0 0 8px rgba(255,255,255,0.85));
+      filter: drop-shadow(0 0 10px rgba(255,255,255,0.75));
     }
 
-    /* Энергоимпульс */
+    /* Энергоимпульс: тихий в начале, яркий в самом конце */
     #impulse {
-      opacity: 0.35;
-      transition: opacity 400ms linear, filter 400ms linear, transform 400ms linear;
+      opacity: 0.03;
+      transition: opacity 1200ms ease, filter 1200ms ease, transform 1200ms ease;
       transform-box: fill-box;
       transform-origin: center;
-      filter: drop-shadow(0 0 10px rgba(255,255,210,0.45));
+      filter: drop-shadow(0 0 8px rgba(255,255,220,0.18));
     }
     #impulse.on {
       opacity: 1;
-      transform: scale(1.15);
-      filter: drop-shadow(0 0 18px rgba(255,255,220,0.95)) drop-shadow(0 0 30px rgba(120,200,255,0.35));
-    }
-
-    /* Силуэт (едва заметен) */
-    .ghost {
-      opacity: 0.08;
-    }
-
-    /* Плазма: 3 слоя */
-    .glowOuter { opacity: 0.35; filter: url(#plasmaGlowOuter); }
-    .glowInner { opacity: 0.60; filter: url(#plasmaGlowInner); }
-    .core      { opacity: 0.95; filter: url(#plasmaCore); }
-
-    /* Лёгкая “жизнь” плазмы: пульсация яркости */
-    .plasmaPulse {
-      animation: plasmaPulse 1.6s infinite ease-in-out;
-    }
-    @keyframes plasmaPulse {
-      0% { opacity: 0.90; }
-      50% { opacity: 1; }
-      100% { opacity: 0.90; }
-    }
-
-    /* Подпись шага (по желанию можно отключить, удалив блок ниже) */
-    .caption {
-      position: fixed;
-      left: 50%;
-      bottom: 14px;
-      transform: translateX(-50%);
-      padding: 8px 12px;
-      border: 1px solid rgba(255,255,255,0.18);
-      border-radius: 999px;
-      background: rgba(0,0,0,0.35);
-      color: rgba(255,255,255,0.92);
-      font-size: 13px;
-      letter-spacing: 0.2px;
-      pointer-events: none;
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      max-width: min(92vw, 760px);
-      text-align: center;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      transform: scale(1.18);
+      filter:
+        drop-shadow(0 0 22px rgba(255,255,230,0.95))
+        drop-shadow(0 0 36px rgba(140,220,255,0.35));
     }
   </style>
 </head>
 
 <body>
-  indicated_by: YOUR SVG (inline) -->
   <canvas id="starCanvas"></canvas>
 
   <div class="overlay">
     <div class="glyphWrap">
       <svg id="glyphSvg"
            viewBox="0 0 17.471024 31.41024"
-           xmlns="http://www.w3.org/2000/svg"
-           xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-           xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd">
+           xmlns="http://www.w3.org/2000/svg">
 
         <defs>
-          <!-- Свечение плазмы -->
-          <filter id="plasmaGlowOuter" x="-60%" y="-60%" width="220%" height="220%">
-            <feGaussianBlur stdDeviation="0.55" result="blur"/>
-            <feColorMatrix in="blur" type="matrix"
+          <!-- Очень мягкое, тонкое свечение -->
+          <filter id="glowSoft" x="-60%" y="-60%" width="220%" height="220%">
+            <feGaussianBlur stdDeviation="0.22" result="b"/>
+            <feMerge>
+              <feMergeNode in="b"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+
+          <filter id="glowOuter" x="-90%" y="-90%" width="280%" height="280%">
+            <feGaussianBlur stdDeviation="0.38" result="b"/>
+            <feColorMatrix in="b" type="matrix"
               values="
                 1 0 0 0 0
                 0 1 0 0 0
                 0 1 1 0 0
-                0 0 0 1 0" result="tint"/>
+                0 0 0 0.85 0" result="t"/>
             <feMerge>
-              <feMergeNode in="tint"/>
+              <feMergeNode in="t"/>
               <feMergeNode in="SourceGraphic"/>
             </feMerge>
           </filter>
 
-          <filter id="plasmaGlowInner" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="0.35" result="blur"/>
-            <feMerge>
-              <feMergeNode in="blur"/>
-              <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-          </filter>
-
-          <filter id="plasmaCore" x="-40%" y="-40%" width="180%" height="180%">
-            <feGaussianBlur stdDeviation="0.10" result="blur"/>
-            <feMerge>
-              <feMergeNode in="blur"/>
-              <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-          </filter>
-
-          <!-- Градиент для “живой” белой плазмы (слегка сине-голубой отблеск) -->
+          <!-- Очень “чистая” белая плазма с лёгким ледяным отблеском -->
           <linearGradient id="plasmaGrad" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%"  stop-color="#ffffff" stop-opacity="0.95"/>
-            <stop offset="40%" stop-color="#e9fbff" stop-opacity="1"/>
-            <stop offset="60%" stop-color="#ffffff" stop-opacity="0.95"/>
-            <stop offset="100%" stop-color="#ffffff" stop-opacity="0.92"/>
+            <stop offset="0%"   stop-color="#ffffff" stop-opacity="0.92"/>
+            <stop offset="45%"  stop-color="#f4fdff" stop-opacity="1"/>
+            <stop offset="55%"  stop-color="#ffffff" stop-opacity="0.96"/>
+            <stop offset="100%" stop-color="#ffffff" stop-opacity="0.90"/>
           </linearGradient>
         </defs>
 
-        <!-- ВАЖНО: ниже вставлен ваш SVG-контент. Вы можете заменить этот блок целиком на актуальный из вашего файла, но оставьте id у seg* и star* -->
-        <g id="layer1" style="display:inline" transform="translate(-161.76484,-11.295264)">
+        <!-- ВАШ КОНТЕНТ: берём вашу геометрию, но без xml и без stroke:none на слое -->
+        <g id="layer1" transform="translate(-161.76484,-11.295264)">
 
-          <!-- Силуэт: те же сегменты, очень бледно -->
-          <g id="ghostLayer" class="ghost" fill="none" stroke="#ffffff" stroke-width="0.365878" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m 170.50035,11.955075 -4.55624,7.860171"/>
-            <path d="m 165.94411,19.815246 9.11247,-4e-6"/>
-            <path d="m 175.05658,19.815242 -4.55623,-7.860167"/>
-            <path d="m 165.94411,19.815248 4.55624,7.860171"/>
-            <path d="m 170.50035,27.675419 4.55623,-7.860167"/>
-            <path d="m 162.3676,30.830773 v -3.155354 h 16.26549 v 3.155354"/>
-            <path d="m 170.50034,27.675419 c 0,0 -0.97185,1.236575 -0.91015,1.958613 0.13716,1.60544 2.75374,2.128038 2.73044,3.917219 -0.0116,0.894587 -0.97083,1.423155 -1.90259,1.953447 -0.93175,0.530292 -1.89099,1.05886 -1.90259,1.953452 -0.0233,1.78918 2.59328,2.311779 2.73045,3.917218 0.0308,0.361018 -0.19669,0.850671 -0.43195,1.250065"/>
-          </g>
-
-          <!-- Плазменные сегменты: реальные пути с id seg1..seg7 (будем анимировать через JS) -->
-          <g id="pathsLayer">
-            <path id="seg6" d="m 162.3676,30.830773 v -3.155354 h 16.26549 v 3.155354" fill="none" />
-            <path id="seg1" d="m 170.50035,11.955075 -4.55624,7.860171" fill="none" />
-            <path id="seg3" d="m 175.05658,19.815242 -4.55623,-7.860167" fill="none" />
-            <path id="seg2" d="m 165.94411,19.815246 9.11247,-4e-6" fill="none" />
-            <path id="seg7" d="m 170.50034,27.675419 c 0,0 -0.97185,1.236575 -0.91015,1.958613 0.13716,1.60544 2.75374,2.128038 2.73044,3.917219 -0.0116,0.894587 -0.97083,1.423155 -1.90259,1.953447 -0.93175,0.530292 -1.89099,1.05886 -1.90259,1.953452 -0.0233,1.78918 2.59328,2.311779 2.73045,3.917218 0.0308,0.361018 -0.19669,0.850671 -0.43195,1.250065" fill="none" />
-            <path id="seg4" d="m 165.94411,19.815248 4.55624,7.860171" fill="none" />
-            <path id="seg5" d="m 170.50035,27.675419 4.55623,-7.860167" fill="none" />
-          </g>
-
-          <!-- Звёзды: как в вашем файле, плюс class="star" -->
+          <!-- Звёзды: остаются, но станут “реалистичнее” за счёт opacity+glow -->
           <g id="stars" pointer-events="none">
-            <path id="star6" class="star" style="fill:#ffffff;stroke:#ffffff;stroke-width:0.256063" d="m 113.98988,239.23457 -1.0641,-0.31796 -0.25668,1.08051 -0.25669,-1.08051 -1.06409,0.31796 0.80741,-0.76255 -0.80741,-0.76256 1.06409,0.31796 0.25669,-1.08051 0.25668,1.08051 1.0641,-0.31796 -0.80741,0.76256 z" transform="matrix(-0.21646536,0.37465133,-0.37492902,-0.21630505,292.43213,39.873066)" />
-            <path id="star3" class="star" style="fill:#ffffff;stroke:#ffffff;stroke-width:0.256063" d="m 113.98988,239.23457 -1.0641,-0.31796 -0.25668,1.08051 -0.25669,-1.08051 -1.06409,0.31796 0.80741,-0.76255 -0.80741,-0.76256 1.06409,0.31796 0.25669,-1.08051 0.25668,1.08051 1.0641,-0.31796 -0.80741,0.76256 z" transform="matrix(-0.21646536,0.37465133,-0.37492902,-0.21630505,288.85562,29.186314)" />
-            <path id="star4" class="star" style="fill:#ffffff;stroke:#ffffff;stroke-width:0.256063" d="m 113.98988,239.23457 -1.0641,-0.31796 -0.25668,1.08051 -0.25669,-1.08051 -1.06409,0.31796 0.80741,-0.76255 -0.80741,-0.76256 1.06409,0.31796 0.25669,-1.08051 0.25668,1.08051 1.0641,-0.31796 -0.80741,0.76256 z" transform="matrix(-0.21646536,0.37465133,-0.37492902,-0.21630505,276.16664,39.873066)" />
-            <path id="star2" class="star" style="fill:#ffffff;stroke:#ffffff;stroke-width:0.256063" d="m 113.98988,239.23457 -1.0641,-0.31796 -0.25668,1.08051 -0.25669,-1.08051 -1.06409,0.31796 0.80741,-0.76255 -0.80741,-0.76256 1.06409,0.31796 0.25669,-1.08051 0.25668,1.08051 1.0641,-0.31796 -0.80741,0.76256 z" transform="matrix(-0.21646536,0.37465133,-0.37492902,-0.21630505,279.74315,29.186314)" />
-            <path id="star1" class="star" style="fill:#ffffff;stroke:#ffffff;stroke-width:0.256063" d="m 113.98988,239.23457 -1.0641,-0.31796 -0.25668,1.08051 -0.25669,-1.08051 -1.06409,0.31796 0.80741,-0.76255 -0.80741,-0.76256 1.06409,0.31796 0.25669,-1.08051 0.25668,1.08051 1.0641,-0.31796 -0.80741,0.76256 z" transform="matrix(-0.21646536,0.37465133,-0.37492902,-0.21630505,284.29938,21.326142)" />
-            <path id="star5" class="star" style="fill:#ffffff;stroke:#ffffff;stroke-width:0.141834" d="m 113.98988,239.23457 -1.00826,-0.35527 0.0822,1.06585 -0.46173,-0.96416 -0.69555,0.81181 0.35527,-1.00826 -1.06585,0.0822 0.96416,-0.46173 -0.8118,-0.69555 1.00826,0.35527 -0.0822,-1.06585 0.46174,0.96416 0.69554,-0.81181 -0.35527,1.00826 1.06586,-0.0822 -0.96416,0.46173 z" transform="matrix(0.20221877,0.75469068,0.75469068,-0.20221877,-32.256065,-9.1313715)" />
+            <path id="star6" class="star" fill="#ffffff" stroke="#ffffff" stroke-width="0.256063"
+              d="m 113.98988,239.23457 -1.0641,-0.31796 -0.25668,1.08051 -0.25669,-1.08051 -1.06409,0.31796 0.80741,-0.76255 -0.80741,-0.76256 1.06409,0.31796 0.25669,-1.08051 0.25668,1.08051 1.0641,-0.31796 -0.80741,0.76256 z"
+              transform="matrix(-0.21646536,0.37465133,-0.37492902,-0.21630505,292.43213,39.873066)" />
+            <path id="star3" class="star" fill="#ffffff" stroke="#ffffff" stroke-width="0.256063"
+              d="m 113.98988,239.23457 -1.0641,-0.31796 -0.25668,1.08051 -0.25669,-1.08051 -1.06409,0.31796 0.80741,-0.76255 -0.80741,-0.76256 1.06409,0.31796 0.25669,-1.08051 0.25668,1.08051 1.0641,-0.31796 -0.80741,0.76256 z"
+              transform="matrix(-0.21646536,0.37465133,-0.37492902,-0.21630505,288.85562,29.186314)" />
+            <path id="star4" class="star" fill="#ffffff" stroke="#ffffff" stroke-width="0.256063"
+              d="m 113.98988,239.23457 -1.0641,-0.31796 -0.25668,1.08051 -0.25669,-1.08051 -1.06409,0.31796 0.80741,-0.76255 -0.80741,-0.76256 1.06409,0.31796 0.25669,-1.08051 0.25668,1.08051 1.0641,-0.31796 -0.80741,0.76256 z"
+              transform="matrix(-0.21646536,0.37465133,-0.37492902,-0.21630505,276.16664,39.873066)" />
+            <path id="star2" class="star" fill="#ffffff" stroke="#ffffff" stroke-width="0.256063"
+              d="m 113.98988,239.23457 -1.0641,-0.31796 -0.25668,1.08051 -0.25669,-1.08051 -1.06409,0.31796 0.80741,-0.76255 -0.80741,-0.76256 1.06409,0.31796 0.25669,-1.08051 0.25668,1.08051 1.0641,-0.31796 -0.80741,0.76256 z"
+              transform="matrix(-0.21646536,0.37465133,-0.37492902,-0.21630505,279.74315,29.186314)" />
+            <path id="star1" class="star" fill="#ffffff" stroke="#ffffff" stroke-width="0.256063"
+              d="m 113.98988,239.23457 -1.0641,-0.31796 -0.25668,1.08051 -0.25669,-1.08051 -1.06409,0.31796 0.80741,-0.76255 -0.80741,-0.76256 1.06409,0.31796 0.25669,-1.08051 0.25668,1.08051 1.0641,-0.31796 -0.80741,0.76256 z"
+              transform="matrix(-0.21646536,0.37465133,-0.37492902,-0.21630505,284.29938,21.326142)" />
+            <path id="star5" class="star" fill="#ffffff" stroke="#ffffff" stroke-width="0.141834"
+              d="m 113.98988,239.23457 -1.00826,-0.35527 0.0822,1.06585 -0.46173,-0.96416 -0.69555,0.81181 0.35527,-1.00826 -1.06585,0.0822 0.96416,-0.46173 -0.8118,-0.69555 1.00826,0.35527 -0.0822,-1.06585 0.46174,0.96416 0.69554,-0.81181 -0.35527,1.00826 1.06586,-0.0822 -0.96416,0.46173 z"
+              transform="matrix(0.20221877,0.75469068,0.75469068,-0.20221877,-32.256065,-9.1313715)" />
           </g>
 
-          <!-- Энергоимпульс: отдельная “большая звезда/вспышка” в точке соединения -->
-          <!-- Точка соединения по вашим путям: (170.50035, 27.675419) -->
+          <!-- Энергоимпульс в точке соединения (170.50035, 27.675419) -->
           <g id="impulse" transform="translate(170.50035 27.675419)">
-            <circle r="0.95" fill="#fff8c8" />
-            <circle r="0.62" fill="#ffffff" opacity="0.95" />
+            <circle r="0.92" fill="#fff7c2" />
+            <circle r="0.58" fill="#ffffff" opacity="0.95" />
+          </g>
+
+          <!-- Группа плазмы (будем плавно проявлять opacity) -->
+          <g id="plasmaGroup">
+            <!-- Исходные пути (без видимого stroke): используем только для длины/точек -->
+            <path id="seg1" d="m 170.50035,11.955075 -4.55624,7.860171" fill="none"/>
+            <path id="seg2" d="m 165.94411,19.815246 9.11247,-4e-6" fill="none"/>
+            <path id="seg3" d="m 175.05658,19.815242 -4.55623,-7.860167" fill="none"/>
+            <path id="seg4" d="m 165.94411,19.815248 4.55624,7.860171" fill="none"/>
+            <path id="seg5" d="m 170.50035,27.675419 4.55623,-7.860167" fill="none"/>
+            <path id="seg6" d="m 162.3676,30.830773 v -3.155354 h 16.26549 v 3.155354" fill="none"/>
+            <path id="seg7" d="m 170.50034,27.675419 c 0,0 -0.97185,1.236575 -0.91015,1.958613 0.13716,1.60544 2.75374,2.128038 2.73044,3.917219 -0.0116,0.894587 -0.97083,1.423155 -1.90259,1.953447 -0.93175,0.530292 -1.89099,1.05886 -1.90259,1.953452 -0.0233,1.78918 2.59328,2.311779 2.73045,3.917218 0.0308,0.361018 -0.19669,0.850671 -0.43195,1.250065" fill="none"/>
           </g>
 
         </g>
@@ -219,19 +173,18 @@
     </div>
   </div>
 
-  <div class="caption" id="caption">Эль Ви-Нар: автоматическое прорисовывание</div>
-
   <script>
   (() => {
-    /* Реалистичный звёздный фон на canvas */
+    /* ---------- ФОН: “настоящее” звёздное небо ---------- */
     const canvas = document.getElementById('starCanvas');
     const ctx = canvas.getContext('2d', { alpha: false });
 
     const DPR = () => Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-
     let W = 0, H = 0, dpr = 1;
     const stars = [];
-    const STAR_COUNT = 220;
+    const STAR_COUNT = 260;
+
+    function rand(min, max) { return min + Math.random() * (max - min); }
 
     function resizeCanvas() {
       dpr = DPR();
@@ -241,19 +194,18 @@
       canvas.height = H;
     }
 
-    function rand(min, max) { return min + Math.random() * (max - min); }
-
     function initStars() {
       stars.length = 0;
       for (let i = 0; i < STAR_COUNT; i++) {
-        const z = Math.pow(Math.random(), 1.8); // больше мелких, меньше крупных
+        const z = Math.pow(Math.random(), 1.9);
         stars.push({
           x: Math.random(),
           y: Math.random(),
-          r: rand(0.25, 1.6) * (0.35 + (1 - z)),
-          a: rand(0.25, 1.0),
-          tw: rand(0.6, 2.3),
+          r: rand(0.22, 1.35) * (0.35 + (1 - z)),
+          a: rand(0.18, 1.0),
+          tw: rand(0.55, 1.9),
           ph: rand(0, Math.PI * 2),
+          cool: Math.random() > 0.55
         });
       }
     }
@@ -266,15 +218,10 @@
       for (const s of stars) {
         const x = s.x * W;
         const y = s.y * H;
-
-        // лёгкое мерцание
-        const tw = 0.55 + 0.45 * Math.sin(time * s.tw + s.ph);
+        const tw = 0.62 + 0.38 * Math.sin(time * s.tw + s.ph);
         const a = s.a * tw;
 
-        // “реалистичность”: часть звёзд чуть теплее/холоднее
-        const hue = (s.ph * 180 / Math.PI) % 360;
-        const isCool = (hue % 2) > 1;
-        const col = isCool ? `rgba(220,240,255,${a})` : `rgba(255,240,220,${a})`;
+        const col = s.cool ? `rgba(215,238,255,${a})` : `rgba(255,238,220,${a})`;
 
         ctx.beginPath();
         ctx.fillStyle = col;
@@ -282,9 +229,9 @@
         ctx.fill();
       }
 
-      // мягкая “дымка”/галактическая пыль (очень деликатно)
-      const g = ctx.createRadialGradient(W * 0.55, H * 0.42, 0, W * 0.55, H * 0.42, Math.min(W, H) * 0.65);
-      g.addColorStop(0, 'rgba(80,120,170,0.06)');
+      // очень мягкая дымка
+      const g = ctx.createRadialGradient(W*0.56, H*0.42, 0, W*0.56, H*0.42, Math.min(W,H)*0.68);
+      g.addColorStop(0, 'rgba(70,110,170,0.05)');
       g.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, W, H);
@@ -292,27 +239,18 @@
 
     resizeCanvas();
     initStars();
-    window.addEventListener('resize', () => {
-      resizeCanvas();
-      initStars();
-    });
+    window.addEventListener('resize', () => { resizeCanvas(); initStars(); });
 
-    /* Анимация SVG: последовательное прорисовывание сегментов + загорание звёзд */
+    /* ---------- SVG АНИМАЦИЯ: супер-плавная, тонкая плазма, без контуров ---------- */
     const svg = document.getElementById('glyphSvg');
-    const caption = document.getElementById('caption');
-
-    const order = [
-      { id: 'seg1', label: 'Зеркало Бытия → Зеркало Души' },
-      { id: 'seg2', label: 'Зеркало Души → Зеркало Сознания' },
-      { id: 'seg3', label: 'Зеркало Сознания → Зеркало Бытия' },
-      { id: 'seg4', label: 'Зеркало Души → Энергоимпульс' },
-      { id: 'seg5', label: 'Энергоимпульс → Зеркало Сознания' },
-      { id: 'seg6', label: 'Прошлое ↑ → через энергоимпульс → ↓ Будущее (одним штрихом)' },
-      { id: 'seg7', label: 'Энергоимпульс → вниз по волне Энергии заземления' },
-    ];
-
-    const starEls = Array.from(svg.querySelectorAll('#stars .star'));
+    const plasmaGroup = svg.querySelector('#plasmaGroup');
     const impulse = svg.querySelector('#impulse');
+    const starEls = Array.from(svg.querySelectorAll('#stars .star'));
+
+    function resetStars() {
+      for (const s of starEls) s.classList.remove('on');
+      if (impulse) impulse.classList.remove('on');
+    }
 
     function starCenter(el) {
       const b = el.getBBox();
@@ -329,144 +267,162 @@
         const d2 = dx*dx + dy*dy;
         if (d2 < bestD2) { bestD2 = d2; best = s; }
       }
-      // порог “разумной близости”
       const TH = 6.0;
       return bestD2 <= TH*TH ? best : null;
     }
 
-    function setStarOn(el) {
-      if (!el) return;
-      el.classList.add('on');
-    }
+    function starOn(el) { if (el) el.classList.add('on'); }
 
-    function resetStars() {
-      for (const s of starEls) s.classList.remove('on');
-      if (impulse) impulse.classList.remove('on');
-    }
+    // Порядок (как вы задавали)
+    const order = ['seg1','seg2','seg3','seg4','seg5','seg6','seg7'];
 
-    // Создаём “плазменные” слои поверх каждого seg
-    function buildPlasmaLayers(basePath) {
+    // Создаём плазму-пути поверх исходных seg*
+    function makePlasmaLayers(basePath) {
       const d = basePath.getAttribute('d');
-      const sw = 0.365878;
+      const baseSW = 0.365878;
 
-      const mk = (cls, widthMul) => {
+      // ТОНКО: внешний слой слегка шире, но не “труба”
+      const outerW = baseSW * 1.45;
+      const innerW = baseSW * 1.15;
+      const coreW  = baseSW * 0.88;
+
+      const mk = (strokeW, filterId, opacity) => {
         const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         p.setAttribute('d', d);
         p.setAttribute('fill', 'none');
         p.setAttribute('stroke', 'url(#plasmaGrad)');
         p.setAttribute('stroke-linecap', 'round');
         p.setAttribute('stroke-linejoin', 'round');
-        p.setAttribute('stroke-width', String(sw * widthMul));
-        p.setAttribute('class', cls + ' plasmaPulse');
+        p.setAttribute('stroke-width', String(strokeW));
+        p.setAttribute('opacity', String(opacity));
+        if (filterId) p.setAttribute('filter', `url(#${filterId})`);
         return p;
       };
 
-      const outer = mk('glowOuter', 3.2);
-      const inner = mk('glowInner', 2.0);
-      const core  = mk('core',      1.15);
+      const outer = mk(outerW, 'glowOuter', 0.28);
+      const inner = mk(innerW, 'glowSoft',  0.55);
+      const core  = mk(coreW,  null,        0.92);
 
       return [outer, inner, core];
     }
 
-    // Подготовка сегментов: прячем исходные seg и заменяем плазменными копиями
-    const segments = order.map(item => {
-      const base = svg.querySelector('#' + CSS.escape(item.id));
-      if (!base) return null;
+    // Подготовка сегментов: строим timeline без пауз и без рывков
+    const segments = [];
+    for (const id of order) {
+      const base = svg.querySelector('#' + CSS.escape(id));
+      if (!base) continue;
 
-      // Сохраним исходный stroke-width если он есть
-      base.setAttribute('stroke-width', base.getAttribute('stroke-width') || '0.365878');
-
-      // Получаем длину
       const total = base.getTotalLength();
+      const layers = makePlasmaLayers(base);
 
-      // Создаём плазменные слои
-      const layers = buildPlasmaLayers(base);
-
-      // Вставляем слои на место базового пути (перед базовым, потом скрываем базовый)
+      // Вставляем плазму после base (но base остаётся невидимым для расчётов)
       const parent = base.parentNode;
-      for (const p of layers) parent.insertBefore(p, base);
+      for (const p of layers) parent.insertBefore(p, base.nextSibling);
 
-      // Скрываем базовый, но оставляем для вычислений если нужно
-      base.style.display = 'none';
+      base.style.stroke = 'none';
+      base.style.fill = 'none';
 
-      // Настраиваем dash на всех слоях
       for (const p of layers) {
         p.style.strokeDasharray = String(total);
         p.style.strokeDashoffset = String(total);
       }
 
-      return { id: item.id, label: item.label, total, layers, base };
-    }).filter(Boolean);
-
-    // Скорость прорисовки: единиц длины SVG в секунду
-    const SPEED = 8.0; // можно сделать 6–12, если захотите быстрее/медленнее
-    const HOLD_AFTER_SEG = 260; // пауза между сегментами
-
-    let segIndex = 0;
-    let segStartTime = null;
-    let holdUntil = null;
-
-    resetStars();
-    if (caption) caption.textContent = 'Эль Ви-Нар: автоматическое прорисовывание';
-
-    function stepAnimationFrame(ts) {
-      drawStars(ts);
-
-      if (segIndex >= segments.length) {
-        // финал: усиливаем энергоимпульс и держим
-        if (impulse) impulse.classList.add('on');
-        requestAnimationFrame(stepAnimationFrame);
-        return;
-      }
-
-      const seg = segments[segIndex];
-
-      if (holdUntil && ts < holdUntil) {
-        requestAnimationFrame(stepAnimationFrame);
-        return;
-      }
-      if (holdUntil && ts >= holdUntil) {
-        holdUntil = null;
-        segStartTime = null;
-      }
-
-      if (segStartTime === null) {
-        segStartTime = ts;
-
-        // На старте сегмента подсветим ближайшую звезду к началу сегмента
-        const startPt = seg.base.getPointAtLength(0);
-        setStarOn(nearestStarToPoint(startPt));
-
-        // На сегментах, которые приходят в точку энергоимпульса, можно чуть усилить импульс заранее
-        if (seg.id === 'seg4' || seg.id === 'seg5' || seg.id === 'seg7') {
-          if (impulse) impulse.classList.add('on');
-        }
-
-        if (caption) caption.textContent = seg.label;
-      }
-
-      const elapsed = (ts - segStartTime) / 1000;
-      const drawLen = Math.min(seg.total, elapsed * SPEED);
-      const offset = seg.total - drawLen;
-
-      for (const p of seg.layers) {
-        p.style.strokeDashoffset = String(offset);
-      }
-
-      if (drawLen >= seg.total) {
-        // Финиш: подсветим ближайшую звезду к концу сегмента
-        const endPt = seg.base.getPointAtLength(seg.total);
-        setStarOn(nearestStarToPoint(endPt));
-
-        // Пауза и следующий сегмент
-        segIndex += 1;
-        holdUntil = ts + HOLD_AFTER_SEG;
-      }
-
-      requestAnimationFrame(stepAnimationFrame);
+      segments.push({ id, base, total, layers });
     }
 
-    requestAnimationFrame(stepAnimationFrame);
+    // easing: очень плавное ускорение/замедление
+    function smoothstep(t) {
+      // t: 0..1
+      return t * t * (3 - 2 * t);
+    }
+
+    // Общий fade-in “из бездны”
+    const FADE_IN_MS = 2600;
+
+    // Длительность прорисовки каждого сегмента (мс): подбирается по длине, чтобы не было скачков
+    // Чем больше множитель, тем медленнее.
+    const MS_PER_UNIT = 120; // тонко и плавно; можно 90 быстрее, 150 медленнее
+
+    // Стартовая пауза “из тьмы” (очень короткая, почти незаметная)
+    const PRE_DELAY_MS = 350;
+
+    // Таймлайн сегментов: старт/конец по времени
+    let tCursor = PRE_DELAY_MS;
+    for (const s of segments) {
+      const dur = Math.max(900, s.total * MS_PER_UNIT);
+      s.t0 = tCursor;
+      s.t1 = tCursor + dur;
+      tCursor = s.t1; // без пауз
+    }
+    const TOTAL_MS = tCursor + 900; // небольшой хвост для финального усиления импульса
+
+    resetStars();
+
+    // На старте подсветим “первую” звезду рядом с началом первого сегмента (почти незаметно, но красиво)
+    if (segments[0]) {
+      const p0 = segments[0].base.getPointAtLength(0);
+      starOn(nearestStarToPoint(p0));
+    }
+
+    function animate(ts0) {
+      function frame(ts) {
+        drawStars(ts);
+
+        const elapsed = ts - ts0;
+
+        // Общий fade-in
+        const fadeT = Math.max(0, Math.min(1, elapsed / FADE_IN_MS));
+        if (plasmaGroup) plasmaGroup.style.opacity = String(0.02 + 0.98 * smoothstep(fadeT));
+
+        // Прорисовка сегментов строго по таймлайну (без пауз, без рывков)
+        for (const s of segments) {
+          let t = 0;
+          if (elapsed <= s.t0) {
+            t = 0;
+          } else if (elapsed >= s.t1) {
+            t = 1;
+          } else {
+            t = (elapsed - s.t0) / (s.t1 - s.t0);
+          }
+
+          const eased = smoothstep(t);
+          const drawLen = s.total * eased;
+          const offset = s.total - drawLen;
+
+          for (const p of s.layers) {
+            p.style.strokeDashoffset = String(offset);
+          }
+
+          // “загорание” звёзд: когда сегмент почти дошёл до конца
+          if (t > 0.92 && !s.starEndDone) {
+            const endPt = s.base.getPointAtLength(s.total);
+            starOn(nearestStarToPoint(endPt));
+            s.starEndDone = true;
+          }
+
+          // “загорание” звезды начала (когда сегмент реально начал проявляться)
+          if (t > 0.08 && !s.starStartDone) {
+            const startPt = s.base.getPointAtLength(0);
+            starOn(nearestStarToPoint(startPt));
+            s.starStartDone = true;
+          }
+        }
+
+        // Финальное усиление энергоимпульса — только под самый конец (без ранних включений)
+        if (impulse) {
+          const endPhaseStart = TOTAL_MS - 900;
+          if (elapsed > endPhaseStart) {
+            impulse.classList.add('on');
+          }
+        }
+
+        requestAnimationFrame(frame);
+      }
+
+      requestAnimationFrame(frame);
+    }
+
+    requestAnimationFrame(animate);
   })();
   </script>
 </body>
