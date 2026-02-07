@@ -8,53 +8,67 @@
   <style>
     :root { color-scheme: dark; }
     html, body { height: 100%; }
-    body { margin: 0; overflow: hidden; background: #000; }
+    body { margin: 0; overflow: hidden; background: #030720; }
 
-    #starCanvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+    #starCanvas {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      display: block;
+    }
 
-    .overlay { position: fixed; inset: 0; display: grid; place-items: center; pointer-events: none; }
+    .overlay {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+    }
 
-    /* максимум 2 дюйма + запас, чтобы ничего не обрезалось */
     .glyphWrap {
       width: min(92vw, 2in);
       max-width: 2in;
-      padding: 34px;
+      padding: 36px; /* запас под свечение/лучи, чтобы не обрезалось */
       overflow: visible;
     }
 
     svg { width: 100%; height: auto; display: block; overflow: visible; }
 
-    /* плавное появление из “бездны” */
-    #plasmaGroup { opacity: 0; }
+    /* Плавное появление всей плазмы из “бездны” */
+    #plasmaVisual { opacity: 0; }
 
-    /* Плазма — режим “светится поверх фона” */
-    #plasmaVisual { mix-blend-mode: screen; }
-
-    /* Иконки-звёздочки прячем полностью (они только для координат) */
+    /* Иконки-звёзды скрываем (они только маркеры координат) */
     #starsIcon { opacity: 0; }
 
-    /* Реалистичные звёзды глифа */
+    /* Реалистичные звёзды */
     #starsReal .rstar {
-      opacity: 0.0;
+      opacity: 0;
       transition: opacity 700ms ease;
-      mix-blend-mode: screen;
       filter: url(#starGlow);
     }
     #starsReal .rstar.on { opacity: 1; }
 
-    /* Энергоимпульс: старт 0, финальный всплеск */
+    /* Энергоимпульс: только в конце */
     #impulseReal {
       opacity: 0;
+      transition: opacity 900ms ease, transform 900ms ease;
       transform-box: fill-box;
       transform-origin: center;
-      mix-blend-mode: screen;
       filter: url(#impulseGlow);
-      transition: opacity 900ms ease, transform 900ms ease;
     }
     #impulseReal.on {
       opacity: 1;
-      transform: scale(1.08);
+      transform: scale(1.10);
     }
+
+    /* “бегущий огонёк” по плазме */
+    #runner {
+      opacity: 0;
+      transition: opacity 350ms ease;
+      filter: url(#runnerGlow);
+    }
+    #runner.on { opacity: 1; }
   </style>
 </head>
 
@@ -68,15 +82,15 @@
            xmlns="http://www.w3.org/2000/svg">
 
         <defs>
-          <!-- Плазма: тонкая текстура (очень мягкий displacement) -->
-          <filter id="plasmaFilter" x="-80%" y="-80%" width="260%" height="260%">
+          <!-- Плазма: тонкая текстура края (очень мягкая) -->
+          <filter id="plasmaFilter" x="-120%" y="-120%" width="340%" height="340%">
             <feTurbulence id="plasmaNoise"
               type="fractalNoise"
-              baseFrequency="0.90"
+              baseFrequency="0.85"
               numOctaves="2"
               seed="2"
               result="noise"/>
-            <feDisplacementMap in="SourceGraphic" in2="noise" scale="0.12" xChannelSelector="R" yChannelSelector="G" result="displaced"/>
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="0.18" xChannelSelector="R" yChannelSelector="G" result="displaced"/>
             <feGaussianBlur in="displaced" stdDeviation="0.10" result="blur1"/>
             <feMerge>
               <feMergeNode in="blur1"/>
@@ -84,41 +98,49 @@
             </feMerge>
           </filter>
 
-          <!-- Мягкое внешнее свечение плазмы -->
-          <filter id="plasmaGlow" x="-120%" y="-120%" width="340%" height="340%">
-            <feGaussianBlur stdDeviation="0.34" result="b"/>
+          <!-- Мягкое свечение плазмы -->
+          <filter id="plasmaGlow" x="-160%" y="-160%" width="420%" height="420%">
+            <feGaussianBlur stdDeviation="0.40" result="b"/>
             <feMerge>
               <feMergeNode in="b"/>
               <feMergeNode in="SourceGraphic"/>
             </feMerge>
           </filter>
 
-          <!-- Градиент плазмы (белый, лёгкий холодный отблеск) -->
+          <!-- Белая плазма с лёгким ледяным оттенком -->
           <linearGradient id="plasmaGrad" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%"   stop-color="#ffffff" stop-opacity="0.88"/>
-            <stop offset="45%"  stop-color="#f3fbff" stop-opacity="1"/>
-            <stop offset="55%"  stop-color="#ffffff" stop-opacity="0.94"/>
-            <stop offset="100%" stop-color="#ffffff" stop-opacity="0.86"/>
+            <stop offset="0%"   stop-color="#ffffff" stop-opacity="0.90"/>
+            <stop offset="45%"  stop-color="#eef9ff" stop-opacity="1"/>
+            <stop offset="55%"  stop-color="#ffffff" stop-opacity="0.96"/>
+            <stop offset="100%" stop-color="#ffffff" stop-opacity="0.88"/>
           </linearGradient>
 
-          <!-- Реалистичная звезда: градиент-ядро -->
+          <!-- Звезда: ядро -->
           <radialGradient id="starCoreGrad">
             <stop offset="0%"   stop-color="#ffffff" stop-opacity="1"/>
-            <stop offset="35%"  stop-color="#ffffff" stop-opacity="0.95"/>
-            <stop offset="70%"  stop-color="#cfeaff" stop-opacity="0.35"/>
+            <stop offset="30%"  stop-color="#ffffff" stop-opacity="0.95"/>
+            <stop offset="70%"  stop-color="#cfeaff" stop-opacity="0.40"/>
             <stop offset="100%" stop-color="#a7d8ff" stop-opacity="0"/>
           </radialGradient>
 
-          <filter id="starGlow" x="-200%" y="-200%" width="500%" height="500%">
-            <feGaussianBlur stdDeviation="0.22" result="b"/>
+          <filter id="starGlow" x="-260%" y="-260%" width="620%" height="620%">
+            <feGaussianBlur stdDeviation="0.26" result="b"/>
             <feMerge>
               <feMergeNode in="b"/>
               <feMergeNode in="SourceGraphic"/>
             </feMerge>
           </filter>
 
-          <filter id="impulseGlow" x="-240%" y="-240%" width="580%" height="580%">
+          <filter id="impulseGlow" x="-320%" y="-320%" width="740%" height="740%">
             <feGaussianBlur stdDeviation="0.34" result="b"/>
+            <feMerge>
+              <feMergeNode in="b"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+
+          <filter id="runnerGlow" x="-400%" y="-400%" width="900%" height="900%">
+            <feGaussianBlur stdDeviation="0.24" result="b"/>
             <feMerge>
               <feMergeNode in="b"/>
               <feMergeNode in="SourceGraphic"/>
@@ -126,12 +148,11 @@
           </filter>
         </defs>
 
-        <!-- Ваш слой в координатах Inkscape -->
+        <!-- Координаты Inkscape -->
         <g id="layer1" transform="translate(-161.76484,-11.295264)">
 
-          <!-- ИКОНКИ-ЗВЁЗДЫ (только как координаты, визуально скрыты) -->
+          <!-- Иконки-звёзды (маркеры) -->
           <g id="starsIcon" pointer-events="none">
-            <!-- ВАЖНО: это ваши star* пути -->
             <path id="star6" d="m 113.98988,239.23457 -1.0641,-0.31796 -0.25668,1.08051 -0.25669,-1.08051 -1.06409,0.31796 0.80741,-0.76255 -0.80741,-0.76256 1.06409,0.31796 0.25669,-1.08051 0.25668,1.08051 1.0641,-0.31796 -0.80741,0.76256 z" transform="matrix(-0.21646536,0.37465133,-0.37492902,-0.21630505,292.43213,39.873066)" />
             <path id="star3" d="m 113.98988,239.23457 -1.0641,-0.31796 -0.25668,1.08051 -0.25669,-1.08051 -1.06409,0.31796 0.80741,-0.76255 -0.80741,-0.76256 1.06409,0.31796 0.25669,-1.08051 0.25668,1.08051 1.0641,-0.31796 -0.80741,0.76256 z" transform="matrix(-0.21646536,0.37465133,-0.37492902,-0.21630505,288.85562,29.186314)" />
             <path id="star4" d="m 113.98988,239.23457 -1.0641,-0.31796 -0.25668,1.08051 -0.25669,-1.08051 -1.06409,0.31796 0.80741,-0.76255 -0.80741,-0.76256 1.06409,0.31796 0.25669,-1.08051 0.25668,1.08051 1.0641,-0.31796 -0.80741,0.76256 z" transform="matrix(-0.21646536,0.37465133,-0.37492902,-0.21630505,276.16664,39.873066)" />
@@ -140,13 +161,16 @@
             <path id="star5" d="m 113.98988,239.23457 -1.00826,-0.35527 0.0822,1.06585 -0.46173,-0.96416 -0.69555,0.81181 0.35527,-1.00826 -1.06585,0.0822 0.96416,-0.46173 -0.8118,-0.69555 1.00826,0.35527 -0.0822,-1.06585 0.46174,0.96416 0.69554,-0.81181 -0.35527,1.00826 1.06586,-0.0822 -0.96416,0.46173 z" transform="matrix(0.20221877,0.75469068,0.75469068,-0.20221877,-32.256065,-9.1313715)" />
           </g>
 
-          <!-- Реалистичные “звёзды” рисуем поверх (JS заполнит) -->
+          <!-- Реалистичные звёзды поверх -->
           <g id="starsReal" pointer-events="none"></g>
 
-          <!-- Энергоимпульс (реалистичный) — тоже рисуем как glow-спрайт -->
+          <!-- Реалистичный энергоимпульс (в конце) -->
           <g id="impulseReal" pointer-events="none"></g>
 
-          <!-- Базовые пути для сегментов -->
+          <!-- Бегущий огонёк -->
+          <g id="runner" pointer-events="none"></g>
+
+          <!-- Базовые пути (для длины/точек) -->
           <g id="plasmaGroup">
             <path id="seg1" d="m 170.50035,11.955075 -4.55624,7.860171" fill="none"/>
             <path id="seg2" d="m 165.94411,19.815246 9.11247,-4e-6" fill="none"/>
@@ -164,14 +188,14 @@
 
   <script>
   (() => {
-    /* ---------- ФОН: цветнее, как на вашей 3-й картинке (но деликатно) ---------- */
+    /* ---------- ФОН: тёмно-синий + цветная дымка ---------- */
     const canvas = document.getElementById('starCanvas');
     const ctx = canvas.getContext('2d', { alpha: false });
 
     const DPR = () => Math.max(1, Math.min(2, window.devicePixelRatio || 1));
     let W = 0, H = 0, dpr = 1;
     const stars = [];
-    const STAR_COUNT = 320;
+    const STAR_COUNT = 360;
 
     function rand(min, max) { return min + Math.random() * (max - min); }
 
@@ -190,23 +214,27 @@
         stars.push({
           x: Math.random(),
           y: Math.random(),
-          r: rand(0.18, 1.35) * (0.35 + (1 - z)),
+          r: rand(0.18, 1.45) * (0.35 + (1 - z)),
           a: rand(0.16, 1.0),
-          tw: rand(0.45, 1.7),
+          tw: rand(0.40, 1.6),
           ph: rand(0, Math.PI * 2),
-          cool: Math.random() > 0.55
+          cool: Math.random() > 0.52
         });
       }
     }
 
     function drawNebula(t) {
-      const time = t * 0.00012;
+      const time = t * 0.00010;
 
-      // несколько “облаков” разных оттенков
+      // базовый глубокий синий
+      ctx.fillStyle = '#030720';
+      ctx.fillRect(0, 0, W, H);
+
+      // облака
       const clouds = [
-        { x: 0.55 + 0.02*Math.sin(time*1.2), y: 0.38, r: 0.72, c0: 'rgba(70,120,190,0.10)', c1: 'rgba(0,0,0,0)' },
-        { x: 0.35, y: 0.62 + 0.02*Math.cos(time*1.1), r: 0.68, c0: 'rgba(120,90,180,0.06)', c1: 'rgba(0,0,0,0)' },
-        { x: 0.72, y: 0.70, r: 0.60, c0: 'rgba(90,160,150,0.05)', c1: 'rgba(0,0,0,0)' },
+        { x: 0.52 + 0.03*Math.sin(time*1.2), y: 0.36, r: 0.78, c0: 'rgba(70,120,210,0.18)', c1: 'rgba(3,7,32,0)' },
+        { x: 0.32, y: 0.62 + 0.03*Math.cos(time*1.05), r: 0.70, c0: 'rgba(120,90,200,0.12)', c1: 'rgba(3,7,32,0)' },
+        { x: 0.74, y: 0.72, r: 0.62, c0: 'rgba(80,170,160,0.10)', c1: 'rgba(3,7,32,0)' },
       ];
 
       for (const cl of clouds) {
@@ -219,9 +247,6 @@
     }
 
     function drawStars(t) {
-      ctx.fillStyle = '#000';
-      ctx.fillRect(0, 0, W, H);
-
       drawNebula(t);
 
       const time = t * 0.001;
@@ -244,133 +269,148 @@
     initStars();
     window.addEventListener('resize', () => { resizeCanvas(); initStars(); });
 
-    /* ---------- SVG: медленно, пропорционально длинам + реалистичные звёзды ---------- */
+    /* ---------- SVG: сегменты + реалистичные звёзды + “бегущий огонёк” ---------- */
     const svg = document.getElementById('glyphSvg');
     const plasmaGroup = svg.querySelector('#plasmaGroup');
     const noise = svg.querySelector('#plasmaNoise');
 
     const starsIcon = Array.from(svg.querySelectorAll('#starsIcon > path[id^="star"]'));
     const starsRealGroup = svg.querySelector('#starsReal');
-
     const impulseRealGroup = svg.querySelector('#impulseReal');
+    const runnerGroup = svg.querySelector('#runner');
 
-    // центры “иконок-звёзд”
     function iconCenter(el) {
       const b = el.getBBox();
       return { x: b.x + b.width/2, y: b.y + b.height/2 };
     }
 
-    // создаём реалистичную звезду-спрайт (кружок + лёгкое ядро)
+    // заранее центры — чтобы iOS не “чудил” во время анимации
+    const starCenters = starsIcon.map(s => ({ id: s.id, c: iconCenter(s) }));
+
+    // “реалистичная” звезда: круг-ореол + ядро + 4 луча
     function makeRealStar(id, cx, cy, rOuter, rCore) {
       const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
       g.setAttribute('class', 'rstar');
       g.setAttribute('data-id', id);
 
-      const outer = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      outer.setAttribute('cx', cx);
-      outer.setAttribute('cy', cy);
-      outer.setAttribute('r', rOuter);
-      outer.setAttribute('fill', 'url(#starCoreGrad)');
+      const halo = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      halo.setAttribute('cx', cx);
+      halo.setAttribute('cy', cy);
+      halo.setAttribute('r', rOuter);
+      halo.setAttribute('fill', 'url(#starCoreGrad)');
 
       const core = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       core.setAttribute('cx', cx);
       core.setAttribute('cy', cy);
       core.setAttribute('r', rCore);
       core.setAttribute('fill', '#ffffff');
-      core.setAttribute('opacity', '0.92');
+      core.setAttribute('opacity', '0.96');
 
-      g.appendChild(outer);
+      // лучи (как на “реалистичных” звёздах)
+      const mkRay = (x1,y1,x2,y2,op) => {
+        const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        ln.setAttribute('x1', x1); ln.setAttribute('y1', y1);
+        ln.setAttribute('x2', x2); ln.setAttribute('y2', y2);
+        ln.setAttribute('stroke', '#ffffff');
+        ln.setAttribute('stroke-width', '0.12');
+        ln.setAttribute('stroke-linecap', 'round');
+        ln.setAttribute('opacity', op);
+        return ln;
+      };
+
+      const rayLen = rOuter * 1.55;
+      const ray1 = mkRay(cx - rayLen, cy, cx + rayLen, cy, '0.35');
+      const ray2 = mkRay(cx, cy - rayLen, cx, cy + rayLen, '0.35');
+
+      const rayLen2 = rOuter * 1.15;
+      const ray3 = mkRay(cx - rayLen2, cy - rayLen2, cx + rayLen2, cy + rayLen2, '0.22');
+      const ray4 = mkRay(cx - rayLen2, cy + rayLen2, cx + rayLen2, cy - rayLen2, '0.22');
+
+      g.appendChild(halo);
+      g.appendChild(ray1);
+      g.appendChild(ray2);
+      g.appendChild(ray3);
+      g.appendChild(ray4);
       g.appendChild(core);
 
       return g;
     }
 
-    // создаём энергоимпульс как большую реалистичную звезду в точке соединения
-    function buildImpulse(cx, cy) {
-      // размеры подобраны под ваш масштаб (мм-вьюбокс)
-      const rOuter = 2.2;
-      const rCore  = 0.85;
-
-      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      g.setAttribute('id', 'impulseSprite');
-
-      const outer = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      outer.setAttribute('cx', cx);
-      outer.setAttribute('cy', cy);
-      outer.setAttribute('r', rOuter);
-      outer.setAttribute('fill', 'url(#starCoreGrad)');
-      outer.setAttribute('opacity', '1');
-
-      const core = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      core.setAttribute('cx', cx);
-      core.setAttribute('cy', cy);
-      core.setAttribute('r', rCore);
-      core.setAttribute('fill', '#ffffff');
-      core.setAttribute('opacity', '0.98');
-
-      g.appendChild(outer);
-      g.appendChild(core);
-
-      impulseRealGroup.appendChild(g);
-    }
-
-    // Сопоставление звёзд: создаём реалистичные спрайты поверх всех icon-star
+    // создаём все реальные звёзды
     const realStars = new Map(); // id -> element
-    for (const s of starsIcon) {
-      const id = s.id;
-      const c = iconCenter(s);
-
-      // чуть разные размеры — чтобы выглядело “естественнее”
-      const rOuter = 1.25 + Math.random()*0.45;
-      const rCore  = 0.22 + Math.random()*0.10;
-
-      const spr = makeRealStar(id, c.x, c.y, rOuter, rCore);
+    for (const s of starCenters) {
+      const rOuter = 1.45 + Math.random()*0.55;
+      const rCore  = 0.24 + Math.random()*0.10;
+      const spr = makeRealStar(s.id, s.c.x, s.c.y, rOuter, rCore);
       starsRealGroup.appendChild(spr);
-      realStars.set(id, spr);
+      realStars.set(s.id, spr);
     }
-
-    // энергоимпульс: точка соединения по вашим путям
-    const IMPULSE_PT = { x: 170.50035, y: 27.675419 };
-    buildImpulse(IMPULSE_PT.x, IMPULSE_PT.y);
 
     function starOnById(id) {
       const el = realStars.get(id);
       if (el) el.classList.add('on');
     }
 
-    // Находим ближайшую icon-звезду к точке (для корректного порядка включения)
-    function nearestIconStarId(pt) {
-      let bestId = null;
+    function nearestStarId(pt) {
+      let best = null;
       let bestD2 = Infinity;
-      for (const s of starsIcon) {
-        const c = iconCenter(s);
-        const dx = c.x - pt.x;
-        const dy = c.y - pt.y;
+      for (const s of starCenters) {
+        const dx = s.c.x - pt.x;
+        const dy = s.c.y - pt.y;
         const d2 = dx*dx + dy*dy;
-        if (d2 < bestD2) { bestD2 = d2; bestId = s.id; }
+        if (d2 < bestD2) { bestD2 = d2; best = s.id; }
       }
-      return bestId;
+      return best;
     }
 
-    // Плазма: создаём визуальные слои поверх каждого seg*
+    // Энергоимпульс — точка соединения
+    const IMP = { x: 170.50035, y: 27.675419 };
+    const impulseSprite = makeRealStar('impulse', IMP.x, IMP.y, 2.85, 0.55);
+    impulseRealGroup.appendChild(impulseSprite);
+
+    // бегущий огонёк (не огромный, но заметнее)
+    const runnerHalo = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    runnerHalo.setAttribute('cx', IMP.x);
+    runnerHalo.setAttribute('cy', IMP.y);
+    runnerHalo.setAttribute('r', '1.05');
+    runnerHalo.setAttribute('fill', 'url(#starCoreGrad)');
+    runnerGroup.appendChild(runnerHalo);
+
+    const runnerCore = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    runnerCore.setAttribute('cx', IMP.x);
+    runnerCore.setAttribute('cy', IMP.y);
+    runnerCore.setAttribute('r', '0.22');
+    runnerCore.setAttribute('fill', '#ffffff');
+    runnerCore.setAttribute('opacity', '0.95');
+    runnerGroup.appendChild(runnerCore);
+
+    function setRunner(pt, on) {
+      runnerHalo.setAttribute('cx', pt.x);
+      runnerHalo.setAttribute('cy', pt.y);
+      runnerCore.setAttribute('cx', pt.x);
+      runnerCore.setAttribute('cy', pt.y);
+      if (on) runnerGroup.classList.add('on'); else runnerGroup.classList.remove('on');
+    }
+
+    /* Плазма */
     const order = ['seg1','seg2','seg3','seg4','seg5','seg6','seg7'];
 
     function smoothstep(t) { return t * t * (3 - 2 * t); }
 
-    // Медленнее + пропорционально длине:
-    // увеличивайте MS_PER_UNIT, если хотите ещё медленнее
-    const PRE_DELAY_MS = 650;
-    const FADE_IN_MS = 4200;
-    const MS_PER_UNIT = 520;     // медленно (и длинные сегменты реально идут дольше)
-    const MIN_SEG_MS  = 1800;
+    const PRE_DELAY_MS = 750;
+    const FADE_IN_MS = 4600;
 
-    // визуально “не тоньше на горизонтали”: ядро чуть выше
+    // медленно и пропорционально длинам
+    const MS_PER_UNIT = 620;
+    const MIN_SEG_MS  = 2000;
+
     function makePlasmaLayers(basePath) {
       const d = basePath.getAttribute('d');
-
       const baseSW = 0.365878;
-      const outerW = baseSW * 1.15;
-      const coreW  = baseSW * 0.98;
+
+      // ВАЖНО: ядро чуть толще, чтобы seg2 (горизонталь) не пропадал
+      const outerW = baseSW * 1.22;
+      const coreW  = baseSW * 1.10;
 
       const outer = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       outer.setAttribute('d', d);
@@ -379,7 +419,7 @@
       outer.setAttribute('stroke-linecap', 'round');
       outer.setAttribute('stroke-linejoin', 'round');
       outer.setAttribute('stroke-width', String(outerW));
-      outer.setAttribute('opacity', '0.22');
+      outer.setAttribute('opacity', '0.30');
       outer.setAttribute('filter', 'url(#plasmaGlow)');
 
       const core = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -389,13 +429,17 @@
       core.setAttribute('stroke-linecap', 'round');
       core.setAttribute('stroke-linejoin', 'round');
       core.setAttribute('stroke-width', String(coreW));
-      core.setAttribute('opacity', '0.96');
+      core.setAttribute('opacity', '0.98');
       core.setAttribute('filter', 'url(#plasmaFilter)');
 
       return [outer, core];
     }
 
-    // готовим сегменты
+    // визуальная группа для плазмы (отдельно от базовых путей)
+    const plasmaVisual = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    plasmaVisual.setAttribute('id', 'plasmaVisual');
+    plasmaGroup.parentNode.insertBefore(plasmaVisual, plasmaGroup);
+
     const segments = [];
     for (const id of order) {
       const base = svg.querySelector('#' + CSS.escape(id));
@@ -404,15 +448,7 @@
       const total = base.getTotalLength();
       const layers = makePlasmaLayers(base);
 
-      // Визуальная группа (чтобы blend-mode применялся только к плазме)
-      let visual = base.parentNode.querySelector('#plasmaVisual');
-      if (!visual) {
-        visual = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        visual.setAttribute('id', 'plasmaVisual');
-        base.parentNode.insertBefore(visual, base);
-      }
-
-      for (const p of layers) visual.appendChild(p);
+      for (const p of layers) plasmaVisual.appendChild(p);
 
       base.style.stroke = 'none';
       base.style.fill = 'none';
@@ -425,7 +461,7 @@
       segments.push({ id, base, total, layers, starStartDone: false, starEndDone: false });
     }
 
-    // таймлайн строго по длинам
+    // таймлайн по длинам
     let tCursor = PRE_DELAY_MS;
     for (const s of segments) {
       const dur = Math.max(MIN_SEG_MS, s.total * MS_PER_UNIT);
@@ -433,15 +469,17 @@
       s.t1 = tCursor + dur;
       tCursor = s.t1;
     }
-    const TOTAL_MS = tCursor + 1500;
+    const TOTAL_MS = tCursor + 1800;
 
     // сброс видимости
     for (const el of realStars.values()) el.classList.remove('on');
     impulseRealGroup.classList.remove('on');
+    plasmaVisual.style.opacity = '0';
+    setRunner(IMP, false);
 
-    // Стартовая звезда — первая по ближайшей к началу seg1
+    // первая звезда: по началу seg1
     const firstStart = segments[0]?.base.getPointAtLength(0);
-    const firstId = firstStart ? nearestIconStarId(firstStart) : null;
+    const firstId = firstStart ? nearestStarId(firstStart) : null;
 
     function animate(ts0) {
       function frame(ts) {
@@ -449,21 +487,24 @@
 
         const elapsed = ts - ts0;
 
-        // очень плавное появление всей плазмы из “бездны”
+        // плавное появление плазмы
         const fadeT = Math.max(0, Math.min(1, elapsed / FADE_IN_MS));
-        plasmaGroup.style.opacity = String(0.001 + 0.999 * smoothstep(fadeT));
+        plasmaVisual.style.opacity = String(0.001 + 0.999 * smoothstep(fadeT));
 
-        // лёгкое “живое” мерцание текстуры плазмы (очень мягко)
+        // мягкая “живость” текстуры плазмы
         if (noise) {
-          const t = ts * 0.0002;
-          const bf = 0.86 + 0.06 * Math.sin(t);
+          const t = ts * 0.00022;
+          const bf = 0.82 + 0.08 * Math.sin(t);
           noise.setAttribute('baseFrequency', bf.toFixed(3));
         }
 
-        // зажигаем первую звезду не сразу, а когда “вышли из тьмы”
-        if (firstId && elapsed > PRE_DELAY_MS + 450) {
+        // включаем первую звезду после выхода “из тьмы”
+        if (firstId && elapsed > PRE_DELAY_MS + 550) {
           starOnById(firstId);
         }
+
+        // runner видим только когда реально рисуем сегменты
+        let runnerActive = false;
 
         for (const s of segments) {
           let t = 0;
@@ -477,24 +518,31 @@
 
           for (const p of s.layers) p.style.strokeDashoffset = String(offset);
 
-          // звезда старта сегмента
-          if (t > 0.12 && !s.starStartDone) {
+          // двигаем “огонёк” по текущему активному сегменту (делаем заметнее)
+          if (t > 0 && t < 1) {
+            const pt = s.base.getPointAtLength(drawLen);
+            setRunner(pt, true);
+            runnerActive = true;
+          }
+
+          // звезда старта
+          if (t > 0.10 && !s.starStartDone) {
             const pt = s.base.getPointAtLength(0);
-            const sid = nearestIconStarId(pt);
-            if (sid) starOnById(sid);
+            starOnById(nearestStarId(pt));
             s.starStartDone = true;
           }
 
-          // звезда конца сегмента
+          // звезда финиша
           if (t > 0.92 && !s.starEndDone) {
             const pt = s.base.getPointAtLength(s.total);
-            const sid = nearestIconStarId(pt);
-            if (sid) starOnById(sid);
+            starOnById(nearestStarId(pt));
             s.starEndDone = true;
           }
         }
 
-        // энергоимпульс — только в самом конце
+        if (!runnerActive) setRunner(IMP, false);
+
+        // энергоимпульс — только финал
         if (elapsed > TOTAL_MS - 1200) {
           impulseRealGroup.classList.add('on');
         }
@@ -504,8 +552,6 @@
       requestAnimationFrame(frame);
     }
 
-    resizeCanvas();
-    initStars();
     requestAnimationFrame(animate);
   })();
   </script>
