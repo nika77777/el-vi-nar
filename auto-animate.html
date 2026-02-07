@@ -8,14 +8,8 @@
   <style>
     :root { color-scheme: dark; }
     html, body { height: 100%; }
-    body {
-      margin: 0;
-      overflow: hidden;
-      background: #000;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-    }
+    body { margin: 0; overflow: hidden; background: #000; }
 
-    /* Фон: звёздное небо */
     #starCanvas {
       position: fixed;
       inset: 0;
@@ -24,7 +18,6 @@
       display: block;
     }
 
-    /* Слой глифа */
     .overlay {
       position: fixed;
       inset: 0;
@@ -33,7 +26,6 @@
       pointer-events: none;
     }
 
-    /* Глиф не больше 2 дюймов, но с запасом под свечение (без обрезки) */
     .glyphWrap {
       width: min(92vw, 2in);
       max-width: 2in;
@@ -41,22 +33,14 @@
       overflow: visible;
     }
 
-    svg {
-      width: 100%;
-      height: auto;
-      display: block;
-      overflow: visible;
-    }
+    svg { width: 100%; height: auto; display: block; overflow: visible; }
 
-    /* Общее “появление из бездны” */
-    #plasmaGroup {
-      opacity: 0;
-      transition: opacity 0.0s;
-    }
+    /* Плавное появление “из бездны” */
+    #plasmaGroup { opacity: 0; }
 
-    /* Звёзды глифа: по умолчанию почти невидимы, затем плавно “включаются” */
+    /* Звёзды глифа */
     #stars .star {
-      opacity: 0.06;
+      opacity: 0.05;
       transition: opacity 900ms ease, filter 900ms ease;
       filter: none;
     }
@@ -65,7 +49,7 @@
       filter: drop-shadow(0 0 10px rgba(255,255,255,0.75));
     }
 
-    /* Энергоимпульс: тихий в начале, яркий в самом конце */
+    /* Энергоимпульс */
     #impulse {
       opacity: 0.03;
       transition: opacity 1200ms ease, filter 1200ms ease, transform 1200ms ease;
@@ -93,7 +77,6 @@
            xmlns="http://www.w3.org/2000/svg">
 
         <defs>
-          <!-- Очень мягкое, тонкое свечение -->
           <filter id="glowSoft" x="-60%" y="-60%" width="220%" height="220%">
             <feGaussianBlur stdDeviation="0.22" result="b"/>
             <feMerge>
@@ -103,7 +86,7 @@
           </filter>
 
           <filter id="glowOuter" x="-90%" y="-90%" width="280%" height="280%">
-            <feGaussianBlur stdDeviation="0.38" result="b"/>
+            <feGaussianBlur stdDeviation="0.36" result="b"/>
             <feColorMatrix in="b" type="matrix"
               values="
                 1 0 0 0 0
@@ -116,7 +99,6 @@
             </feMerge>
           </filter>
 
-          <!-- Очень “чистая” белая плазма с лёгким ледяным отблеском -->
           <linearGradient id="plasmaGrad" x1="0" y1="0" x2="1" y2="0">
             <stop offset="0%"   stop-color="#ffffff" stop-opacity="0.92"/>
             <stop offset="45%"  stop-color="#f4fdff" stop-opacity="1"/>
@@ -125,10 +107,10 @@
           </linearGradient>
         </defs>
 
-        <!-- ВАШ КОНТЕНТ: берём вашу геометрию, но без xml и без stroke:none на слое -->
+        <!-- Ваш слой -->
         <g id="layer1" transform="translate(-161.76484,-11.295264)">
 
-          <!-- Звёзды: остаются, но станут “реалистичнее” за счёт opacity+glow -->
+          <!-- Звёзды (как в вашем SVG, + class="star") -->
           <g id="stars" pointer-events="none">
             <path id="star6" class="star" fill="#ffffff" stroke="#ffffff" stroke-width="0.256063"
               d="m 113.98988,239.23457 -1.0641,-0.31796 -0.25668,1.08051 -0.25669,-1.08051 -1.06409,0.31796 0.80741,-0.76255 -0.80741,-0.76256 1.06409,0.31796 0.25669,-1.08051 0.25668,1.08051 1.0641,-0.31796 -0.80741,0.76256 z"
@@ -150,15 +132,14 @@
               transform="matrix(0.20221877,0.75469068,0.75469068,-0.20221877,-32.256065,-9.1313715)" />
           </g>
 
-          <!-- Энергоимпульс в точке соединения (170.50035, 27.675419) -->
+          <!-- Энергоимпульс в точке соединения -->
           <g id="impulse" transform="translate(170.50035 27.675419)">
             <circle r="0.92" fill="#fff7c2" />
             <circle r="0.58" fill="#ffffff" opacity="0.95" />
           </g>
 
-          <!-- Группа плазмы (будем плавно проявлять opacity) -->
+          <!-- Группа, в которой лежат базовые пути (для длины), и плазма-слои (мы вставим JS-ом) -->
           <g id="plasmaGroup">
-            <!-- Исходные пути (без видимого stroke): используем только для длины/точек -->
             <path id="seg1" d="m 170.50035,11.955075 -4.55624,7.860171" fill="none"/>
             <path id="seg2" d="m 165.94411,19.815246 9.11247,-4e-6" fill="none"/>
             <path id="seg3" d="m 175.05658,19.815242 -4.55623,-7.860167" fill="none"/>
@@ -175,7 +156,7 @@
 
   <script>
   (() => {
-    /* ---------- ФОН: “настоящее” звёздное небо ---------- */
+    /* ---------- ФОН: звёздное небо ---------- */
     const canvas = document.getElementById('starCanvas');
     const ctx = canvas.getContext('2d', { alpha: false });
 
@@ -229,7 +210,6 @@
         ctx.fill();
       }
 
-      // очень мягкая дымка
       const g = ctx.createRadialGradient(W*0.56, H*0.42, 0, W*0.56, H*0.42, Math.min(W,H)*0.68);
       g.addColorStop(0, 'rgba(70,110,170,0.05)');
       g.addColorStop(1, 'rgba(0,0,0,0)');
@@ -241,7 +221,7 @@
     initStars();
     window.addEventListener('resize', () => { resizeCanvas(); initStars(); });
 
-    /* ---------- SVG АНИМАЦИЯ: супер-плавная, тонкая плазма, без контуров ---------- */
+    /* ---------- SVG: супер-плавная прорисовка ---------- */
     const svg = document.getElementById('glyphSvg');
     const plasmaGroup = svg.querySelector('#plasmaGroup');
     const impulse = svg.querySelector('#impulse');
@@ -252,11 +232,11 @@
       if (impulse) impulse.classList.remove('on');
     }
 
+    // ВАЖНО: убрали порог — всегда выбираем ближайшую звезду
     function starCenter(el) {
       const b = el.getBBox();
       return { x: b.x + b.width/2, y: b.y + b.height/2 };
     }
-
     function nearestStarToPoint(pt) {
       let best = null;
       let bestD2 = Infinity;
@@ -267,24 +247,35 @@
         const d2 = dx*dx + dy*dy;
         if (d2 < bestD2) { bestD2 = d2; best = s; }
       }
-      const TH = 6.0;
-      return bestD2 <= TH*TH ? best : null;
+      return best;
     }
-
     function starOn(el) { if (el) el.classList.add('on'); }
 
-    // Порядок (как вы задавали)
     const order = ['seg1','seg2','seg3','seg4','seg5','seg6','seg7'];
 
-    // Создаём плазму-пути поверх исходных seg*
+    // Easing: мягкий smoothstep
+    function smoothstep(t) { return t * t * (3 - 2 * t); }
+
+    // Общий fade-in “из бездны”
+    const FADE_IN_MS = 3200;
+    const PRE_DELAY_MS = 450;
+
+    // Главная настройка скорости:
+    // Чем больше значение, тем медленнее, и длинные сегменты будут длиться пропорционально дольше.
+    const MS_PER_UNIT = 150;
+
+    // Минимальная длительность сегмента (чтобы короткие тоже не щёлкали)
+    const MIN_SEG_MS = 1400;
+
     function makePlasmaLayers(basePath) {
       const d = basePath.getAttribute('d');
       const baseSW = 0.365878;
 
-      // ТОНКО: внешний слой слегка шире, но не “труба”
-      const outerW = baseSW * 1.45;
-      const innerW = baseSW * 1.15;
-      const coreW  = baseSW * 0.88;
+      // Фикс “второй сегмент тоньше”: увеличили ядро чуть-чуть,
+      // и добавили общий “унифицирующий” слой (inner)
+      const outerW = baseSW * 1.22;
+      const innerW = baseSW * 1.08;
+      const coreW  = baseSW * 0.92;
 
       const mk = (strokeW, filterId, opacity) => {
         const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -299,14 +290,14 @@
         return p;
       };
 
-      const outer = mk(outerW, 'glowOuter', 0.28);
-      const inner = mk(innerW, 'glowSoft',  0.55);
-      const core  = mk(coreW,  null,        0.92);
+      const outer = mk(outerW, 'glowOuter', 0.22);
+      const inner = mk(innerW, 'glowSoft',  0.52);
+      const core  = mk(coreW,  null,        0.94);
 
       return [outer, inner, core];
     }
 
-    // Подготовка сегментов: строим timeline без пауз и без рывков
+    // Готовим сегменты и строим таймлайн строго по длине
     const segments = [];
     for (const id of order) {
       const base = svg.querySelector('#' + CSS.escape(id));
@@ -315,10 +306,12 @@
       const total = base.getTotalLength();
       const layers = makePlasmaLayers(base);
 
-      // Вставляем плазму после base (но base остаётся невидимым для расчётов)
-      const parent = base.parentNode;
-      for (const p of layers) parent.insertBefore(p, base.nextSibling);
+      // Вставляем слои сразу ПОСЛЕ base (в правильном порядке)
+      for (let i = layers.length - 1; i >= 0; i--) {
+        base.parentNode.insertBefore(layers[i], base.nextSibling);
+      }
 
+      // базовый путь оставляем невидимым
       base.style.stroke = 'none';
       base.style.fill = 'none';
 
@@ -327,42 +320,24 @@
         p.style.strokeDashoffset = String(total);
       }
 
-      segments.push({ id, base, total, layers });
+      segments.push({ id, base, total, layers, starStartDone: false, starEndDone: false });
     }
 
-    // easing: очень плавное ускорение/замедление
-    function smoothstep(t) {
-      // t: 0..1
-      return t * t * (3 - 2 * t);
-    }
-
-    // Общий fade-in “из бездны”
-    const FADE_IN_MS = 2600;
-
-    // Длительность прорисовки каждого сегмента (мс): подбирается по длине, чтобы не было скачков
-    // Чем больше множитель, тем медленнее.
-    const MS_PER_UNIT = 120; // тонко и плавно; можно 90 быстрее, 150 медленнее
-
-    // Стартовая пауза “из тьмы” (очень короткая, почти незаметная)
-    const PRE_DELAY_MS = 350;
-
-    // Таймлайн сегментов: старт/конец по времени
+    // Таймлайн: каждый сегмент = длина * MS_PER_UNIT (пропорционально)
     let tCursor = PRE_DELAY_MS;
     for (const s of segments) {
-      const dur = Math.max(900, s.total * MS_PER_UNIT);
+      const dur = Math.max(MIN_SEG_MS, s.total * MS_PER_UNIT);
       s.t0 = tCursor;
       s.t1 = tCursor + dur;
       tCursor = s.t1; // без пауз
     }
-    const TOTAL_MS = tCursor + 900; // небольшой хвост для финального усиления импульса
+    const TOTAL_MS = tCursor + 1200;
 
     resetStars();
 
-    // На старте подсветим “первую” звезду рядом с началом первого сегмента (почти незаметно, но красиво)
-    if (segments[0]) {
-      const p0 = segments[0].base.getPointAtLength(0);
-      starOn(nearestStarToPoint(p0));
-    }
+    // Подсветим первую звезду у старта (чуть-чуть раньше, когда начнёт проявляться)
+    const firstStartPt = segments[0]?.base.getPointAtLength(0);
+    const firstStar = firstStartPt ? nearestStarToPoint(firstStartPt) : null;
 
     function animate(ts0) {
       function frame(ts) {
@@ -370,20 +345,18 @@
 
         const elapsed = ts - ts0;
 
-        // Общий fade-in
+        // Fade-in всей плазмы
         const fadeT = Math.max(0, Math.min(1, elapsed / FADE_IN_MS));
-        if (plasmaGroup) plasmaGroup.style.opacity = String(0.02 + 0.98 * smoothstep(fadeT));
+        plasmaGroup.style.opacity = String(0.02 + 0.98 * smoothstep(fadeT));
 
-        // Прорисовка сегментов строго по таймлайну (без пауз, без рывков)
+        // как только реально стартуем — зажигаем первую звезду
+        if (elapsed > PRE_DELAY_MS + 120 && firstStar) starOn(firstStar);
+
         for (const s of segments) {
           let t = 0;
-          if (elapsed <= s.t0) {
-            t = 0;
-          } else if (elapsed >= s.t1) {
-            t = 1;
-          } else {
-            t = (elapsed - s.t0) / (s.t1 - s.t0);
-          }
+          if (elapsed <= s.t0) t = 0;
+          else if (elapsed >= s.t1) t = 1;
+          else t = (elapsed - s.t0) / (s.t1 - s.t0);
 
           const eased = smoothstep(t);
           const drawLen = s.total * eased;
@@ -393,32 +366,29 @@
             p.style.strokeDashoffset = String(offset);
           }
 
-          // “загорание” звёзд: когда сегмент почти дошёл до конца
-          if (t > 0.92 && !s.starEndDone) {
-            const endPt = s.base.getPointAtLength(s.total);
-            starOn(nearestStarToPoint(endPt));
-            s.starEndDone = true;
-          }
-
-          // “загорание” звезды начала (когда сегмент реально начал проявляться)
-          if (t > 0.08 && !s.starStartDone) {
+          // Включаем звезду начала, когда сегмент реально “пошёл”
+          if (t > 0.10 && !s.starStartDone) {
             const startPt = s.base.getPointAtLength(0);
             starOn(nearestStarToPoint(startPt));
             s.starStartDone = true;
           }
+
+          // Включаем звезду конца, когда почти дошли
+          if (t > 0.90 && !s.starEndDone) {
+            const endPt = s.base.getPointAtLength(s.total);
+            starOn(nearestStarToPoint(endPt));
+            s.starEndDone = true;
+          }
         }
 
-        // Финальное усиление энергоимпульса — только под самый конец (без ранних включений)
+        // Финал: импульс усиливается только под самый конец
         if (impulse) {
-          const endPhaseStart = TOTAL_MS - 900;
-          if (elapsed > endPhaseStart) {
-            impulse.classList.add('on');
-          }
+          const endPhaseStart = TOTAL_MS - 1200;
+          if (elapsed > endPhaseStart) impulse.classList.add('on');
         }
 
         requestAnimationFrame(frame);
       }
-
       requestAnimationFrame(frame);
     }
 
